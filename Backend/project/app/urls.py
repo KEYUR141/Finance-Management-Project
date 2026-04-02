@@ -6,10 +6,7 @@ from rest_framework.routers import DefaultRouter
 from .views import AuthenticationViewSet, FincancialRecordsViewSet
 
 router = DefaultRouter()
-
-
-
-
+router.register(r'financial-records', FincancialRecordsViewSet, basename='financial-records')
 
 urlpatterns = [
     path('', include(router.urls)),

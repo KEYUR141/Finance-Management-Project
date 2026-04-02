@@ -46,7 +46,7 @@ class FincancialRecordsViewSet(viewsets.ModelViewSet):
     serializer_class = FinancialRecordsSerializer
     permission_classes = [IsAuthenticated, IsAnalystOrAbove]
 
-    @action(detail=False, methods=['get'], url_path='records', permission_classes=[IsAuthenticated, IsAnalystOrAbove])
+    @action(detail=False, methods=['get'], url_path='records', permission_classes=[IsAuthenticated, IsViewerOrAbove])
     def get_records(self, request):
         try:
             records_data = self.queryset
@@ -83,7 +83,48 @@ class FincancialRecordsViewSet(viewsets.ModelViewSet):
                 'Status': 'Failed',
                 'Message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+    
+    @action(detail=True, methods=['patch'], url_path='update-record', permission_classes=[IsAuthenticated, IsAdminOrNot])
+    def update_records(self, request):
+        try:
+            data = request.data
+            record = self.get_object()
+            serializer_data = self.serializer_class(record, data=data, partial=True)
+            if serializer_data.is_valid():
+                serializer_data.save()
+                return Response({
+                    'Status': True,
+                    'Message': "Financial Record Updated",
+                    'data' : serializer_data.data
+                })
+            return Response({
+                'Status': 'Failed',
+                'Message': serializer_data.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({
+                'Status': 'Failed',
+                'Message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['delete'], url_path='delete-record', permission_classes=[IsAuthenticated, IsAdminOrNot])
+    def delete_records(self, request):
+        try:
+            instance = request.data.get('uuid')
+            record = FinancialRecords.objects.get(uuid=instance)
+            record.is_deleted = True
+            record.save()
+            return Response({
+                'Status': True,
+                'Message': "Financial Record Deleted",
+            })
+        except Exception as e:
+            return Response({
+                'Status': 'Failed',
+                'Message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+    
 
 
 

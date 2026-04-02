@@ -25,7 +25,7 @@ SECRET_KEY = "django-insecure-k!dto16=72gr=!@z2@(*)1pe8bzq3i$%zu_4!h=endjp1mak!w
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -101,7 +101,9 @@ DATABASES = {
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 100
 }
 
 from datetime import timedelta
@@ -113,13 +115,6 @@ SIMPLE_JWT = {
     "ALGORITHM": "HS256",
     "SIGNING_KEY": SECRET_KEY,              # or separate env var
     "AUTH_HEADER_TYPES": ("Bearer",),
-}
-
-
-#Pagination settings
-REST_FRAMEWORK = {
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 100
 }
 
 
@@ -162,24 +157,3 @@ STATIC_URL = "static/"
 
 
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
-}
-
-REST_FRAMEWORK = {
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 100
-}
-
-from datetime import timedelta
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=1440),
-    "REFRESH_TOKEN_LIFETIME": timedelta(minutes=1440),
-    "ROTATE_REFRESH_TOKENS": True,          # rotate on refresh (safer)
-    "BLACKLIST_AFTER_ROTATION": True,       # needs token_blacklist app
-    "ALGORITHM": "HS256",
-    "SIGNING_KEY": SECRET_KEY,              # or separate env var
-    "AUTH_HEADER_TYPES": ("Bearer",),
-}
