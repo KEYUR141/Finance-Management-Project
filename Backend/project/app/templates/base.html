@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Finance Dashboard{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -12,8 +13,8 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f8f9fa;
             color: #333;
         }
 
@@ -24,25 +25,26 @@
 
         /* Sidebar */
         .sidebar {
-            width: 250px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            width: 260px;
+            background: #2c3e50;
             color: white;
             padding: 30px 0;
             position: fixed;
             height: 100vh;
             overflow-y: auto;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            box-shadow: 2px 0 8px rgba(0,0,0,0.1);
         }
 
         .sidebar-brand {
-            padding: 0 20px 30px;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
-            margin-bottom: 20px;
+            padding: 0 25px 25px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 25px;
         }
 
         .sidebar-brand h2 {
-            font-size: 24px;
-            font-weight: 700;
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
         }
 
         .sidebar-menu {
@@ -54,24 +56,31 @@
         }
 
         .sidebar-menu a {
-            display: block;
-            padding: 15px 20px;
-            color: rgba(255,255,255,0.8);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 25px;
+            color: rgba(255,255,255,0.7);
             text-decoration: none;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             border-left: 3px solid transparent;
+            font-size: 14px;
         }
 
         .sidebar-menu a:hover {
             background: rgba(255,255,255,0.1);
             color: white;
-            border-left-color: white;
         }
 
         .sidebar-menu a.active {
-            background: rgba(255,255,255,0.15);
+            background: rgba(52, 152, 219, 0.2);
             color: white;
-            border-left-color: #4ade80;
+            border-left-color: #3498db;
+        }
+
+        .sidebar-menu i {
+            width: 18px;
+            text-align: center;
         }
 
         .logout-btn {
@@ -79,24 +88,29 @@
             bottom: 20px;
             width: 90%;
             left: 5%;
-            padding: 12px;
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
+            padding: 12px 15px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
             color: white;
-            border-radius: 6px;
+            border-radius: 5px;
             cursor: pointer;
             text-decoration: none;
             text-align: center;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         .logout-btn:hover {
-            background: rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.15);
         }
 
         /* Main content */
         .main-content {
-            margin-left: 250px;
+            margin-left: 260px;
             flex: 1;
             padding: 30px;
         }
@@ -108,14 +122,15 @@
             align-items: center;
             margin-bottom: 30px;
             background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 20px 25px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
 
         .header h1 {
-            font-size: 28px;
-            color: #333;
+            font-size: 24px;
+            color: #2c3e50;
+            font-weight: 600;
         }
 
         .user-info {
@@ -123,27 +138,23 @@
         }
 
         .user-info p {
-            font-size: 14px;
+            font-size: 13px;
             color: #666;
-            margin: 5px 0;
+            margin: 4px 0;
+        }
+
+        .user-info a {
+            color: #3498db;
+            text-decoration: none;
+            font-size: 13px;
         }
 
         /* Content */
         .content {
             background: white;
             padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        /* Cards */
-        .card {
-            background: white;
-            padding: 20px;
-            margin: 15px 0;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            border-left: 4px solid #667eea;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
 
         /* KPI Cards */
@@ -157,188 +168,197 @@
         .kpi-card {
             background: white;
             padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            border-top: 4px solid #667eea;
-            text-align: center;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            border-top: 3px solid #3498db;
         }
 
         .kpi-card.income {
-            border-top-color: #4ade80;
+            border-top-color: #27ae60;
         }
 
         .kpi-card.expense {
-            border-top-color: #f87171;
+            border-top-color: #e74c3c;
         }
 
         .kpi-card.balance {
-            border-top-color: #60a5fa;
+            border-top-color: #3498db;
         }
 
         .kpi-card h3 {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 10px;
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 12px;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
+            font-weight: 600;
         }
 
         .kpi-card .value {
-            font-size: 32px;
-            font-weight: 700;
-            color: #333;
+            font-size: 28px;
+            font-weight: 600;
+            color: #2c3e50;
         }
 
         /* Table */
         .table-responsive {
             overflow-x: auto;
+            margin-top: 20px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
         }
 
         table thead {
-            background: #f9fafb;
-            border-bottom: 2px solid #e5e7eb;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e8e8e8;
         }
 
         table th {
-            padding: 15px;
+            padding: 12px 15px;
             text-align: left;
             font-weight: 600;
             color: #666;
+            font-size: 13px;
         }
 
         table td {
-            padding: 15px;
-            border-bottom: 1px solid #e5e7eb;
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
         }
 
         table tbody tr:hover {
-            background: #f9fafb;
+            background: #f8f9fa;
         }
 
         /* Pagination */
         .pagination {
             display: flex;
             justify-content: center;
-            gap: 10px;
-            margin-top: 30px;
+            gap: 8px;
+            margin-top: 25px;
             margin-bottom: 20px;
         }
 
         .pagination a, .pagination span {
-            padding: 10px 12px;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
+            padding: 8px 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
             text-decoration: none;
-            color: #667eea;
-            transition: all 0.3s ease;
+            color: #3498db;
+            font-size: 13px;
+            transition: all 0.2s ease;
         }
 
         .pagination a:hover {
-            background: #667eea;
+            background: #3498db;
             color: white;
         }
 
         .pagination .current {
-            padding: 10px 12px;
-            background: #667eea;
+            padding: 8px 10px;
+            background: #3498db;
             color: white;
-            border-radius: 6px;
+            border-radius: 4px;
+            font-size: 13px;
         }
 
         /* Form */
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             font-weight: 600;
-            color: #333;
+            color: #2c3e50;
+            font-size: 13px;
         }
 
         .form-group input,
         .form-group select,
         .form-group textarea {
             width: 100%;
-            padding: 12px;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-            font-size: 14px;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: inherit;
         }
 
         .form-group input:focus,
         .form-group select:focus,
         .form-group textarea:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
         }
 
         /* Button */
         .btn {
-            padding: 12px 24px;
+            padding: 10px 18px;
             border: none;
-            border-radius: 6px;
-            font-size: 14px;
+            border-radius: 4px;
+            font-size: 13px;
             font-weight: 600;
             cursor: pointer;
             text-decoration: none;
-            display: inline-block;
-            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
         }
 
         .btn-primary {
-            background: #667eea;
+            background: #3498db;
             color: white;
         }
 
         .btn-primary:hover {
-            background: #5568d3;
+            background: #2980b9;
         }
 
         .btn-danger {
-            background: #f87171;
+            background: #e74c3c;
             color: white;
         }
 
         .btn-danger:hover {
-            background: #ef4444;
+            background: #c0392b;
         }
 
         .btn-success {
-            background: #4ade80;
+            background: #27ae60;
             color: white;
         }
 
         .btn-success:hover {
-            background: #22c55e;
+            background: #229954;
         }
 
         /* Alert */
         .alert {
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 6px;
+            padding: 12px 15px;
+            margin-bottom: 18px;
+            border-radius: 4px;
             margin-top: 10px;
+            font-size: 13px;
         }
 
         .alert-success {
-            background: #dcfce7;
-            color: #166534;
-            border-left: 4px solid #4ade80;
+            background: #d4edda;
+            color: #155724;
+            border-left: 3px solid #27ae60;
         }
 
         .alert-error {
-            background: #fee2e2;
-            color: #991b1b;
-            border-left: 4px solid #f87171;
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 3px solid #e74c3c;
         }
 
         /* Responsive */
@@ -384,26 +404,32 @@
         <!-- Sidebar -->
         <div class="sidebar">
             <div class="sidebar-brand">
-                <h2>💰 Finance</h2>
+                <h2>Finance Dashboard</h2>
             </div>
             <ul class="sidebar-menu">
                 <li>
                     <a href="{% url 'dashboard' %}" class="{% block nav_dashboard %}{% endblock %}">
-                        📊 Dashboard
+                        <i class="fas fa-chart-line"></i>
+                        Dashboard
                     </a>
                 </li>
                 <li>
                     <a href="{% url 'records' %}" class="{% block nav_records %}{% endblock %}">
-                        📝 Records
+                        <i class="fas fa-list"></i>
+                        Records
                     </a>
                 </li>
                 <li>
                     <a href="{% url 'profile' %}" class="{% block nav_profile %}{% endblock %}">
-                        👤 Profile
+                        <i class="fas fa-user-circle"></i>
+                        Profile
                     </a>
                 </li>
             </ul>
-            <a href="{% url 'logout' %}" class="logout-btn">🚪 Logout</a>
+            <a href="{% url 'logout' %}" class="logout-btn" onclick="handleLogout(event)">
+                <i class="fas fa-sign-out-alt"></i>
+                Logout
+            </a>
         </div>
 
         <!-- Main Content -->
@@ -414,7 +440,7 @@
                 </div>
                 <div class="user-info">
                     <p><strong>{{ user.username }}</strong></p>
-                    <p>Role: <span style="color: #667eea; font-weight: 600;">{{ user.profile.role|upper }}</span></p>
+                    <p>Role: <span style="color: #3498db; font-weight: 600;">{{ user.profile.role|upper }}</span></p>
                 </div>
             </div>
 
@@ -432,5 +458,30 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // Handle logout
+        function handleLogout(event) {
+            event.preventDefault();
+            // Clear JWT tokens from localStorage
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user_uuid');
+            localStorage.removeItem('user_role');
+            // Redirect to login
+            window.location.href = '/login-page/';
+        }
+
+        // Check authentication on page load for all pages except login
+        window.addEventListener('load', function() {
+            const token = localStorage.getItem('access_token');
+            const currentPath = window.location.pathname;
+            
+            // If no token and not already on login page, redirect to login
+            if (!token && !currentPath.includes('login')) {
+                window.location.href = '/login-page/';
+            }
+        });
+    </script>
 </body>
 </html>

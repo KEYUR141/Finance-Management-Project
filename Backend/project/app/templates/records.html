@@ -1,0 +1,297 @@
+{% extends 'base.html' %}
+
+{% block title %}Financial Records - Finance{% endblock %}
+
+{% block page_title %}Financial Records{% endblock %}
+
+{% block nav_records %}active{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 30px;">
+    <button class="btn btn-primary" onclick="openAddModal()">➕ Add New Record</button>
+</div>
+
+<div class="table-responsive">
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Notes</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="recordsTable">
+            <tr>
+                <td colspan="6" style="text-align: center; color: #999;">Loading...</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="pagination" id="pagination"></div>
+
+<!-- Add/Edit Modal -->
+<div id="recordModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 8px; width: 90%; max-width: 500px;">
+        <h2 id="modalTitle">Add New Record</h2>
+        
+        <form id="recordForm">
+            <div class="form-group">
+                <label for="record_type">Type</label>
+                <select id="record_type" name="type_of_record" required>
+                    <option value="">Select Type</option>
+                    <option value="income">📈 Income</option>
+                    <option value="expense">📉 Expense</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="category">Category</label>
+                <select id="category" name="category" required>
+                    <option value="">Select Category</option>
+                    <option value="salary">Salary</option>
+                    <option value="food">Food</option>
+                    <option value="rent">Rent</option>
+                    <option value="investment">Investment</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="amount">Amount</label>
+                <input type="number" id="amount" name="amount" step="0.01" required>
+            </div>
+
+            <div class="form-group">
+                <label for="date">Date</label>
+                <input type="date" id="date" name="date" required>
+            </div>
+
+            <div class="form-group">
+                <label for="notes">Notes (Optional)</label>
+                <textarea id="notes" name="notes" rows="3" placeholder="Add any notes..."></textarea>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" class="btn" style="background: #ddd; color: #333;" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Record</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const API_BASE_URL = 'http://localhost:8000/api';
+    const ACCESS_TOKEN = localStorage.getItem('access_token');
+    const USER_UUID = localStorage.getItem('user_uuid');
+    const USER_ROLE = localStorage.getItem('user_role');
+    
+    let currentPage = 1;
+    let allRecords = [];
+    const ITEMS_PER_PAGE = 10;
+    let editingRecordId = null;
+
+    async function fetchRecords() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/financial-records/records/`, {
+                headers: {
+                    'Authorization': `Bearer ${ACCESS_TOKEN}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    window.location.href = '/login/';
+                }
+                throw new Error('Failed to fetch records');
+            }
+
+            const data = await response.json();
+            allRecords = data.data || [];
+            renderRecords();
+
+        } catch (error) {
+            console.error('Error:', error);
+            document.getElementById('recordsTable').innerHTML = '<tr><td colspan="6" style="text-align: center; color: #e74c3c;">Error loading records</td></tr>';
+        }
+    }
+
+    function renderRecords() {
+        const start = (currentPage - 1) * ITEMS_PER_PAGE;
+        const end = start + ITEMS_PER_PAGE;
+        const pageRecords = allRecords.slice(start, end);
+
+        let html = '';
+        pageRecords.forEach(record => {
+            const typeEmoji = record.type_of_record === 'income' ? '📈' : '📉';
+            const canDelete = USER_ROLE === 'admin';
+            
+            html += `
+                <tr>
+                    <td>${record.date}</td>
+                    <td>${record.category.toUpperCase()}</td>
+                    <td>${typeEmoji} ${record.type_of_record}</td>
+                    <td><strong>₹ ${parseFloat(record.amount).toFixed(2)}</strong></td>
+                    <td>${record.notes || '-'}</td>
+                    <td>
+                        <button class="btn" style="padding: 6px 12px; font-size: 12px; background: #667eea; color: white;" onclick="editRecord('${record.uuid}')">✏️ Edit</button>
+                        ${canDelete ? `<button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="deleteRecord('${record.uuid}')">🗑️ Delete</button>` : ''}
+                    </td>
+                </tr>
+            `;
+        });
+
+        document.getElementById('recordsTable').innerHTML = html || '<tr><td colspan="6" style="text-align: center; color: #999;">No records found</td></tr>';
+        renderPagination();
+    }
+
+    function renderPagination() {
+        const totalPages = Math.ceil(allRecords.length / ITEMS_PER_PAGE);
+        let html = '';
+
+        if (currentPage > 1) {
+            html += `<a href="#" onclick="goToPage(${currentPage - 1}); return false;">← Previous</a>`;
+        }
+
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === currentPage) {
+                html += `<span class="current">${i}</span>`;
+            } else {
+                html += `<a href="#" onclick="goToPage(${i}); return false;">${i}</a>`;
+            }
+        }
+
+        if (currentPage < totalPages) {
+            html += `<a href="#" onclick="goToPage(${currentPage + 1}); return false;">Next →</a>`;
+        }
+
+        document.getElementById('pagination').innerHTML = html;
+    }
+
+    function goToPage(page) {
+        currentPage = page;
+        renderRecords();
+        window.scrollTo(0, 0);
+    }
+
+    function openAddModal() {
+        editingRecordId = null;
+        document.getElementById('modalTitle').textContent = 'Add New Record';
+        document.getElementById('recordForm').reset();
+        document.getElementById('date').valueAsDate = new Date();
+        document.getElementById('recordModal').style.display = 'block';
+    }
+
+    function editRecord(uuid) {
+        const record = allRecords.find(r => r.uuid === uuid);
+        if (record) {
+            editingRecordId = uuid;
+            document.getElementById('modalTitle').textContent = 'Edit Record';
+            document.getElementById('record_type').value = record.type_of_record;
+            document.getElementById('category').value = record.category;
+            document.getElementById('amount').value = record.amount;
+            document.getElementById('date').value = record.date;
+            document.getElementById('notes').value = record.notes || '';
+            document.getElementById('recordModal').style.display = 'block';
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('recordModal').style.display = 'none';
+        editingRecordId = null;
+    }
+
+    async function deleteRecord(uuid) {
+        if (confirm('Are you sure you want to delete this record?')) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/financial-records/delete-record/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${ACCESS_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ uuid: uuid })
+                });
+
+                if (response.ok) {
+                    alert('Record deleted successfully!');
+                    fetchRecords();
+                } else {
+                    alert('Failed to delete record');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error deleting record: ' + error.message);
+            }
+        }
+    }
+
+    document.getElementById('recordForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = {
+            type_of_record: document.getElementById('record_type').value,
+            category: document.getElementById('category').value,
+            amount: document.getElementById('amount').value,
+            date: document.getElementById('date').value,
+            notes: document.getElementById('notes').value,
+            created_by: USER_UUID
+        };
+
+        try {
+            let endpoint, method;
+            
+            if (editingRecordId) {
+                endpoint = `${API_BASE_URL}/financial-records/update-record/${editingRecordId}/`;
+                method = 'PATCH';
+            } else {
+                endpoint = `${API_BASE_URL}/financial-records/add-record/`;
+                method = 'POST';
+            }
+
+            const response = await fetch(endpoint, {
+                method: method,
+                headers: {
+                    'Authorization': `Bearer ${ACCESS_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                alert(editingRecordId ? 'Record updated successfully!' : 'Record added successfully!');
+                closeModal();
+                fetchRecords();
+            } else {
+                const error = await response.json();
+                alert('Error: ' + JSON.stringify(error.Message || error));
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error saving record: ' + error.message);
+        }
+    });
+
+    // Load records on page load
+    window.addEventListener('load', function() {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            window.location.href = '/login-page/';
+        } else {
+            fetchRecords();
+        }
+    });
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('recordModal');
+        if (event.target === modal) {
+            closeModal();
+        }
+    };
+</script>
+{% endblock %}

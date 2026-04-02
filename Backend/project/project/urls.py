@@ -17,8 +17,19 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+from django.views.generic import RedirectView
+from app.template_views import login_view, dashboard_view, records_view, profile_view, logout_view
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path('api/', include('app.urls'))
+    path('api/', include('app.urls')),
+    
+    # Template Views
+    path('login-page/', login_view, name='login'),
+    path('dashboard/', dashboard_view, name='dashboard'),
+    path('records/', records_view, name='records'),
+    path('profile/', profile_view, name='profile'),
+    path('logout/', logout_view, name='logout'),
+    
+    path('', RedirectView.as_view(url='login-page/', permanent=False)),
 ]

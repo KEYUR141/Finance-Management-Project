@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Finance{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block nav_dashboard %}active{% endblock %}
+
+{% block content %}
+<div class="kpi-grid">
+    <div class="kpi-card income">
+        <h3>Total Income</h3>
+        <div class="value" id="totalIncome">₹ 0.00</div>
+        <p style="color: #999; font-size: 12px; margin-top: 8px;">All time</p>
+    </div>
+
+    <div class="kpi-card expense">
+        <h3>Total Expenses</h3>
+        <div class="value" id="totalExpense">₹ 0.00</div>
+        <p style="color: #999; font-size: 12px; margin-top: 8px;">All time</p>
+    </div>
+
+    <div class="kpi-card balance">
+        <h3>Net Balance</h3>
+        <div class="value" id="netBalance">₹ 0.00</div>
+        <p style="color: #999; font-size: 12px; margin-top: 8px;">Income - Expenses</p>
+    </div>
+</div>
+
+<h2 style="margin-top: 35px; margin-bottom: 18px; font-size: 18px; font-weight: 600; color: #2c3e50;">Category Wise Breakdown</h2>
+<div class="table-responsive">
+    <table>
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Type</th>
+                <th>Count</th>
+                <th>Total Amount</th>
+            </tr>
+        </thead>
+        <tbody id="categoryTable">
+            <tr>
+                <td colspan="4" style="text-align: center; color: #999; padding: 30px;">Loading...</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<h2 style="margin-top: 35px; margin-bottom: 18px; font-size: 18px; font-weight: 600; color: #2c3e50;">Recent Transactions</h2>
+<div class="table-responsive">
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Notes</th>
+            </tr>
+        </thead>
+        <tbody id="recentTable">
+            <tr>
+                <td colspan="5" style="text-align: center; color: #999; padding: 30px;">Loading...</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    const API_BASE_URL = 'http://localhost:8000/api';
+    const ACCESS_TOKEN = localStorage.getItem('access_token');
+
+    async function fetchDashboardData() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/financial-records/records/`, {
+                headers: {
+                    'Authorization': `Bearer ${ACCESS_TOKEN}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    window.location.href = '/login-page/';
+                    return;
+                }
+                throw new Error('Failed to fetch records');
+            }
+
+            const data = await response.json();
+            const records = data.data || [];
+
+            // Calculate KPIs
+            let totalIncome = 0;
+            let totalExpense = 0;
+            const categoryMap = {};
+
+            records.forEach(record => {
+                const amount = parseFloat(record.amount) || 0;
+                
+                if (record.type_of_record === 'income') {
+                    totalIncome += amount;
+                } else if (record.type_of_record === 'expense') {
+                    totalExpense += amount;
+                }
+
+                const key = `${record.category}_${record.type_of_record}`;
+                if (!categoryMap[key]) {
+                    categoryMap[key] = { 
+                        category: record.category, 
+                        type: record.type_of_record, 
+                        count: 0, 
+                        amount: 0 
+                    };
+                }
+                categoryMap[key].count += 1;
+                categoryMap[key].amount += amount;
+            });
+
+            const netBalance = totalIncome - totalExpense;
+
+            // Update KPI cards
+            document.getElementById('totalIncome').textContent = `₹ ${totalIncome.toFixed(2)}`;
+            document.getElementById('totalExpense').textContent = `₹ ${totalExpense.toFixed(2)}`;
+            document.getElementById('netBalance').textContent = `₹ ${netBalance.toFixed(2)}`;
+            
+            // Update category table
+            let categoryHtml = '';
+            Object.values(categoryMap).forEach(cat => {
+                const typeLabel = cat.type === 'income' ? 'Income' : 'Expense';
+                categoryHtml += `
+                    <tr>
+                        <td><strong>${cat.category.toUpperCase()}</strong></td>
+                        <td>${typeLabel}</td>
+                        <td>${cat.count}</td>
+                        <td>₹ ${cat.amount.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+            document.getElementById('categoryTable').innerHTML = categoryHtml || '<tr><td colspan="4" style="text-align: center; color: #999;">No data</td></tr>';
+
+            // Update recent transactions (last 5)
+            let recentHtml = '';
+            records.slice(0, 5).forEach(record => {
+                const typeLabel = record.type_of_record === 'income' ? 'Income' : 'Expense';
+                recentHtml += `
+                    <tr>
+                        <td>${record.date}</td>
+                        <td>${record.category.toUpperCase()}</td>
+                        <td>${typeLabel}</td>
+                        <td><strong>₹ ${parseFloat(record.amount).toFixed(2)}</strong></td>
+                        <td>${record.notes || '-'}</td>
+                    </tr>
+                `;
+            });
+            document.getElementById('recentTable').innerHTML = recentHtml || '<tr><td colspan="5" style="text-align: center; color: #999;">No records yet</td></tr>';
+
+        } catch (error) {
+            console.error('Error:', error);
+            document.getElementById('categoryTable').innerHTML = '<tr><td colspan="4" style="text-align: center; color: #e74c3c;">Error loading data</td></tr>';
+            document.getElementById('recentTable').innerHTML = '<tr><td colspan="5" style="text-align: center; color: #e74c3c;">Error loading data</td></tr>';
+        }
+    }
+
+    // Load data on page load
+    window.addEventListener('load', function() {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            window.location.href = '/login-page/';
+        } else {
+            fetchDashboardData();
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+
+{% block title %}User Profile - Finance{% endblock %}
+
+{% block page_title %}User Profile{% endblock %}
+
+{% block nav_profile %}active{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px;">
+    <div class="card">
+        <h2 style="margin-bottom: 20px;">Profile Information</h2>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <label style="color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Username</label>
+                <p style="font-size: 18px; font-weight: 600; color: #333; margin-top: 5px;" id="username">-</p>
+            </div>
+
+            <div>
+                <label style="color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Email</label>
+                <p style="font-size: 18px; font-weight: 600; color: #333; margin-top: 5px;" id="email">-</p>
+            </div>
+
+            <div>
+                <label style="color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Role</label>
+                <p style="font-size: 18px; font-weight: 600; color: #667eea; margin-top: 5px;" id="role">-</p>
+            </div>
+
+            <div>
+                <label style="color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Status</label>
+                <p style="font-size: 18px; font-weight: 600; color: #4ade80; margin-top: 5px;" id="status">-</p>
+            </div>
+
+            <div>
+                <label style="color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Member Since</label>
+                <p style="font-size: 18px; font-weight: 600; color: #333; margin-top: 5px;" id="joinDate">-</p>
+            </div>
+
+            <div>
+                <label style="color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Last Updated</label>
+                <p style="font-size: 18px; font-weight: 600; color: #333; margin-top: 5px;" id="lastUpdated">-</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 30px; border-left-color: #f87171;">
+        <h2 style="margin-bottom: 20px; color: #333;">Account Settings</h2>
+        
+        <button class="btn btn-danger" onclick="handleChangePassword()" style="width: 100%; text-align: center;">🔐 Change Password</button>
+        <button class="btn" style="width: 100%; text-align: center; background: #dc2626; color: white; margin-top: 10px;" onclick="handleDeactivate()">⚠️ Deactivate Account</button>
+    </div>
+</div>
+
+<!-- Change Password Modal -->
+<div id="passwordModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 8px; width: 90%; max-width: 500px;">
+        <h2>Change Password</h2>
+        
+        <form id="passwordForm">
+            <div class="form-group">
+                <label for="currentPassword">Current Password</label>
+                <input type="password" id="currentPassword" name="currentPassword" required>
+            </div>
+
+            <div class="form-group">
+                <label for="newPassword">New Password</label>
+                <input type="password" id="newPassword" name="newPassword" required>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" class="btn" style="background: #ddd; color: #333;" onclick="closePasswordModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Update Password</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const API_BASE_URL = 'http://localhost:8000/api';
+    const ACCESS_TOKEN = localStorage.getItem('access_token');
+    const USER_UUID = localStorage.getItem('user_uuid');
+
+    async function fetchUserProfile() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/users/${USER_UUID}/`, {
+                headers: {
+                    'Authorization': `Bearer ${ACCESS_TOKEN}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    window.location.href = '/login/';
+                }
+                throw new Error('Failed to fetch profile');
+            }
+
+            const data = await response.json();
+            
+            // Format dates
+            const joinDate = new Date(data.created_at);
+            const lastUpdated = new Date(data.updated_at);
+
+            // Update UI
+            document.getElementById('username').textContent = data.user_name || '-';
+            document.getElementById('email').textContent = data.email || '-';
+            document.getElementById('role').textContent = (data.role || '-').toUpperCase();
+            document.getElementById('status').textContent = data.is_active ? '🟢 Active' : '🔴 Inactive';
+            document.getElementById('joinDate').textContent = joinDate.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            document.getElementById('lastUpdated').textContent = lastUpdated.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error loading profile: ' + error.message);
+        }
+    }
+
+    function handleChangePassword() {
+        document.getElementById('passwordModal').style.display = 'block';
+    }
+
+    function closePasswordModal() {
+        document.getElementById('passwordModal').style.display = 'none';
+        document.getElementById('passwordForm').reset();
+    }
+
+    function handleDeactivate() {
+        if (confirm('Are you sure you want to deactivate your account? This action cannot be undone.')) {
+            alert('Account deactivation feature coming soon!');
+        }
+    }
+
+    document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        if (newPassword !== confirmPassword) {
+            alert('Passwords do not match!');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/users/${USER_UUID}/change-password/`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${ACCESS_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    current_password: document.getElementById('currentPassword').value,
+                    new_password: newPassword
+                })
+            });
+
+            if (response.ok) {
+                alert('Password changed successfully!');
+                closePasswordModal();
+            } else {
+                const error = await response.json();
+                alert('Error: ' + (error.detail || 'Failed to change password'));
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error changing password: ' + error.message);
+        }
+    });
+
+    // Load profile on page load
+    window.addEventListener('load', function() {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            window.location.href = '/login-page/';
+        } else {
+            fetchUserProfile();
+        }
+    });
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('passwordModal');
+        if (event.target === modal) {
+            closePasswordModal();
+        }
+    };
+</script>
+{% endblock %}
