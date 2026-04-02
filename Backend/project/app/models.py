@@ -22,12 +22,12 @@ class UserProfile(BaseModel):
         ('analyst', 'Analyst'),
         ('admin', 'Admin'),
     ]
-    
+    password_hash = models.TextField(blank=True,null=True)
     role = models.CharField(max_length=20, choices=role_category, default='viewer')
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.user_name} - {self.email} - {self.first_name} {self.last_name}"
+        return f"{self.uuid} - {self.user_name} - {self.email}"
 
 class FinancialRecords(BaseModel):
     created_by = models.ForeignKey(UserProfile,on_delete=models.SET_NULL,null=True,related_name='financial_records')

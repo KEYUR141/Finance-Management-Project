@@ -37,6 +37,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    'rest_framework',
+    'rest_framework_simplejwt',
     'app'
 ]
 
@@ -95,6 +97,32 @@ DATABASES = {
     }
 }
 
+#JWT Authentication settings
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
+
+from datetime import timedelta
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=1440),
+    "REFRESH_TOKEN_LIFETIME": timedelta(minutes=1440),
+    "ROTATE_REFRESH_TOKENS": True,          # rotate on refresh (safer)
+    "BLACKLIST_AFTER_ROTATION": True,       # needs token_blacklist app
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": SECRET_KEY,              # or separate env var
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+
+#Pagination settings
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 100
+}
+
+
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -131,3 +159,27 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = "static/"
+
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 100
+}
+
+from datetime import timedelta
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=1440),
+    "REFRESH_TOKEN_LIFETIME": timedelta(minutes=1440),
+    "ROTATE_REFRESH_TOKENS": True,          # rotate on refresh (safer)
+    "BLACKLIST_AFTER_ROTATION": True,       # needs token_blacklist app
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": SECRET_KEY,              # or separate env var
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
