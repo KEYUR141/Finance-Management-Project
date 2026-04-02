@@ -43,13 +43,6 @@
             </div>
         </div>
     </div>
-
-    <div class="card" style="margin-top: 30px; border-left-color: #f87171;">
-        <h2 style="margin-bottom: 20px; color: #333;">Account Settings</h2>
-        
-        <button class="btn btn-danger" onclick="handleChangePassword()" style="width: 100%; text-align: center;">🔐 Change Password</button>
-        <button class="btn" style="width: 100%; text-align: center; background: #dc2626; color: white; margin-top: 10px;" onclick="handleDeactivate()">⚠️ Deactivate Account</button>
-    </div>
 </div>
 
 <!-- Change Password Modal -->
@@ -112,7 +105,7 @@
             document.getElementById('username').textContent = data.user_name || '-';
             document.getElementById('email').textContent = data.email || '-';
             document.getElementById('role').textContent = (data.role || '-').toUpperCase();
-            document.getElementById('status').textContent = data.is_active ? '🟢 Active' : '🔴 Inactive';
+            document.getElementById('status').textContent = data.is_active ? 'Active' : 'Inactive';
             document.getElementById('joinDate').textContent = joinDate.toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',

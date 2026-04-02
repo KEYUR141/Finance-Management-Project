@@ -14,78 +14,98 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f5f5f5;
             min-height: 100vh;
             display: flex;
+        }
+
+        /* Left Sidebar */
+        .login-sidebar {
+            width: 40%;
+            background: #1a1a1a;
+            color: white;
+            padding: 60px 50px;
+            display: flex;
+            flex-direction: column;
             justify-content: center;
-            align-items: center;
         }
 
-        .login-container {
+        .sidebar-content h1 {
+            font-size: 32px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .sidebar-content p {
+            font-size: 16px;
+            color: #ccc;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .sidebar-content li {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 10px;
+            margin-left: 20px;
+        }
+
+        /* Right Content Area */
+        .login-content {
+            width: 60%;
             background: white;
-            padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .login-header {
-            text-align: center;
-            margin-bottom: 35px;
-        }
-
-        .login-icon {
-            width: 50px;
-            height: 50px;
-            background: #667eea;
-            border-radius: 8px;
+            padding: 60px 50px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 15px;
-            font-size: 24px;
-            color: white;
         }
 
-        .login-header h1 {
-            font-size: 28px;
-            color: #2c3e50;
-            margin-bottom: 8px;
+        .login-form-container {
+            width: 100%;
+            max-width: 350px;
+        }
+
+        .form-title {
+            font-size: 24px;
+            color: #1a1a1a;
+            margin-bottom: 10px;
             font-weight: 600;
         }
 
-        .login-header p {
+        .form-subtitle {
+            font-size: 13px;
             color: #888;
-            font-size: 14px;
+            margin-bottom: 35px;
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 22px;
         }
 
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            font-weight: 600;
-            color: #2c3e50;
+            font-weight: 500;
+            color: #1a1a1a;
             font-size: 13px;
         }
 
         .form-group input {
             width: 100%;
-            padding: 12px 14px;
+            padding: 11px 12px;
             border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
+            border-radius: 5px;
+            font-size: 13px;
             transition: all 0.2s ease;
             font-family: inherit;
+            background: white;
         }
 
         .form-group input:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+            border-color: #1a1a1a;
+            background: white;
         }
 
         .form-group input::placeholder {
@@ -94,68 +114,70 @@
 
         .btn-login {
             width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 11px;
+            background: #1a1a1a;
             color: white;
             border: none;
-            border-radius: 6px;
-            font-size: 14px;
+            border-radius: 5px;
+            font-size: 13px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
-            margin-top: 10px;
+            margin-top: 12px;
         }
 
         .btn-login:hover {
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-            transform: translateY(-1px);
+            background: #2a2a2a;
         }
 
         .btn-login:active {
-            transform: translateY(0);
+            transform: scale(0.98);
         }
 
         .alert {
             padding: 12px 14px;
             margin-bottom: 18px;
-            border-radius: 6px;
-            font-size: 13px;
+            border-radius: 5px;
+            font-size: 12px;
+            border-left: 3px solid;
         }
 
         .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border-left: 3px solid #e74c3c;
+            background: #fef2f2;
+            color: #991b1b;
+            border-left-color: #dc2626;
         }
 
         .helper-text {
-            text-align: center;
-            margin-top: 20px;
-            color: #888;
+            margin-top: 28px;
+            padding-top: 28px;
+            border-top: 1px solid #eee;
             font-size: 12px;
+            color: #666;
         }
 
         .helper-text p {
             margin: 6px 0;
-            line-height: 1.5;
+            line-height: 1.6;
         }
 
         .helper-text strong {
-            color: #2c3e50;
+            color: #1a1a1a;
+            font-weight: 600;
         }
 
         .loading {
             display: none;
             text-align: center;
-            margin-top: 10px;
+            margin-top: 12px;
         }
 
         .spinner {
             display: inline-block;
-            width: 18px;
-            height: 18px;
-            border: 2px solid rgba(102, 126, 234, 0.3);
-            border-top-color: #667eea;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ddd;
+            border-top-color: #1a1a1a;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
@@ -164,80 +186,110 @@
             to { transform: rotate(360deg); }
         }
 
-        @media (max-width: 480px) {
-            .login-container {
-                padding: 30px 20px;
+        .loading p {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
             }
 
-            .login-header h1 {
+            .login-sidebar {
+                width: 100%;
+                padding: 40px 30px;
+            }
+
+            .login-sidebar h1 {
                 font-size: 24px;
+            }
+
+            .login-content {
+                width: 100%;
+                padding: 40px 30px;
+            }
+
+            .login-form-container {
+                max-width: 100%;
             }
         }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-header">
-            <div class="login-icon">
-                <i class="fas fa-chart-line"></i>
-            </div>
-            <h1>Finance Dashboard</h1>
-            <p>Enter your credentials to login</p>
+    <!-- Left Sidebar -->
+    <div class="login-sidebar">
+        <div class="sidebar-content">
+            <h1>Finance Management</h1>
+            <p>A professional backend system for managing financial records with role-based access control.</p>
+            <br>
+            <p><strong>Features:</strong></p>
+            <ul style="list-style: none;">
+                <li><i class="fas fa-check"></i> Role-based access (Viewer, Analyst, Admin)</li>
+                <li><i class="fas fa-check"></i> Financial records management</li>
+                <li><i class="fas fa-check"></i> Real-time analytics</li>
+                <li><i class="fas fa-check"></i> Secure JWT authentication</li>
+            </ul>
         </div>
+    </div>
 
-        {% if error %}
-            <div class="alert alert-error">
-                {{ error }}
-            </div>
-        {% endif %}
+    <!-- Right Content Area -->
+    <div class="login-content">
+        <div class="login-form-container">
+            <div class="form-title">Login</div>
+            <div class="form-subtitle">Enter your credentials to access the dashboard</div>
 
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }}">
-                    {{ message }}
+            {% if error %}
+                <div class="alert alert-error">
+                    {{ error }}
                 </div>
-            {% endfor %}
-        {% endif %}
+            {% endif %}
 
-        <form id="loginForm" onsubmit="handleLogin(event)">
-            <div class="form-group">
-                <label for="email">
-                    <i class="fas fa-envelope"></i> Email or Username
-                </label>
-                <input 
-                    type="text" 
-                    id="email" 
-                    name="email" 
-                    placeholder="Enter your email or username"
-                    required
-                >
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="email">Email or Username</label>
+                    <input 
+                        type="text" 
+                        id="email" 
+                        name="email" 
+                        placeholder="Enter email or username"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        placeholder="Enter your password"
+                        required
+                    >
+                </div>
+
+                <button type="submit" class="btn-login">Login</button>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Authenticating...</p>
+                </div>
+            </form>
+
+            <div class="helper-text">
+                <p><strong>Demo Account:</strong></p>
+                <p>Email: <strong>k@gmail.com</strong></p>
+                <p>Password: <strong>test123</strong></p>
             </div>
-
-            <div class="form-group">
-                <label for="password">
-                    <i class="fas fa-lock"></i> Password
-                </label>
-                <input 
-                    type="password" 
-                    id="password" 
-                    name="password" 
-                    placeholder="Enter your password"
-                    required
-                >
-            </div>
-
-            <button type="submit" class="btn-login">Login</button>
-
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <p>Logging in...</p>
-            </div>
-        </form>
-
-        <div class="helper-text">
-            <p><strong>Demo Credentials:</strong></p>
-            <p>Email: <strong>k@gmail.com</strong></p>
-            <p>Password: <strong>test123</strong></p>
         </div>
     </div>
 

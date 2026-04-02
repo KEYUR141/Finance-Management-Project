@@ -11,23 +11,23 @@
     <div class="kpi-card income">
         <h3>Total Income</h3>
         <div class="value" id="totalIncome">₹ 0.00</div>
-        <p style="color: #999; font-size: 12px; margin-top: 8px;">All time</p>
+        <p style="color: #888; font-size: 11px; margin-top: 8px;">All time</p>
     </div>
 
     <div class="kpi-card expense">
         <h3>Total Expenses</h3>
         <div class="value" id="totalExpense">₹ 0.00</div>
-        <p style="color: #999; font-size: 12px; margin-top: 8px;">All time</p>
+        <p style="color: #888; font-size: 11px; margin-top: 8px;">All time</p>
     </div>
 
     <div class="kpi-card balance">
         <h3>Net Balance</h3>
         <div class="value" id="netBalance">₹ 0.00</div>
-        <p style="color: #999; font-size: 12px; margin-top: 8px;">Income - Expenses</p>
+        <p style="color: #888; font-size: 11px; margin-top: 8px;">Income - Expenses</p>
     </div>
 </div>
 
-<h2 style="margin-top: 35px; margin-bottom: 18px; font-size: 18px; font-weight: 600; color: #2c3e50;">Category Wise Breakdown</h2>
+<h2 style="margin-top: 30px; margin-bottom: 15px; font-size: 14px; font-weight: 600; color: #1a1a1a;">Category Wise Breakdown</h2>
 <div class="table-responsive">
     <table>
         <thead>
@@ -40,13 +40,13 @@
         </thead>
         <tbody id="categoryTable">
             <tr>
-                <td colspan="4" style="text-align: center; color: #999; padding: 30px;">Loading...</td>
+                <td colspan="4" style="text-align: center; color: #888; padding: 25px;">Loading...</td>
             </tr>
         </tbody>
     </table>
 </div>
 
-<h2 style="margin-top: 35px; margin-bottom: 18px; font-size: 18px; font-weight: 600; color: #2c3e50;">Recent Transactions</h2>
+<h2 style="margin-top: 30px; margin-bottom: 15px; font-size: 14px; font-weight: 600; color: #1a1a1a;">Recent Transactions</h2>
 <div class="table-responsive">
     <table>
         <thead>
@@ -60,7 +60,7 @@
         </thead>
         <tbody id="recentTable">
             <tr>
-                <td colspan="5" style="text-align: center; color: #999; padding: 30px;">Loading...</td>
+                <td colspan="5" style="text-align: center; color: #888; padding: 25px;">Loading...</td>
             </tr>
         </tbody>
     </table>
@@ -137,7 +137,7 @@
                     </tr>
                 `;
             });
-            document.getElementById('categoryTable').innerHTML = categoryHtml || '<tr><td colspan="4" style="text-align: center; color: #999;">No data</td></tr>';
+            document.getElementById('categoryTable').innerHTML = categoryHtml || '<tr><td colspan="4" style="text-align: center; color: #888;">No data</td></tr>';
 
             // Update recent transactions (last 5)
             let recentHtml = '';
@@ -153,7 +153,7 @@
                     </tr>
                 `;
             });
-            document.getElementById('recentTable').innerHTML = recentHtml || '<tr><td colspan="5" style="text-align: center; color: #999;">No records yet</td></tr>';
+            document.getElementById('recentTable').innerHTML = recentHtml || '<tr><td colspan="5" style="text-align: center; color: #888;">No records yet</td></tr>';
 
         } catch (error) {
             console.error('Error:', error);

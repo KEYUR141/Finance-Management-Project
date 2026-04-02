@@ -7,8 +7,11 @@
 {% block nav_records %}active{% endblock %}
 
 {% block content %}
+<!-- Message Container -->
+<div id="messageContainer" style="margin-bottom: 20px;"></div>
+
 <div style="margin-bottom: 30px;">
-    <button class="btn btn-primary" onclick="openAddModal()">➕ Add New Record</button>
+    <button class="btn btn-primary" onclick="openAddModal()"><i class="fas fa-plus"></i> Add Record</button>
 </div>
 
 <div class="table-responsive">
@@ -38,13 +41,16 @@
     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 8px; width: 90%; max-width: 500px;">
         <h2 id="modalTitle">Add New Record</h2>
         
+        <!-- Error message in modal -->
+        <div id="modalMessage" style="display: none; padding: 12px 14px; margin-bottom: 18px; border-radius: 5px; font-size: 12px; border-left: 3px solid;"></div>
+        
         <form id="recordForm">
             <div class="form-group">
                 <label for="record_type">Type</label>
                 <select id="record_type" name="type_of_record" required>
                     <option value="">Select Type</option>
-                    <option value="income">📈 Income</option>
-                    <option value="expense">📉 Expense</option>
+                    <option value="income">Income</option>
+                    <option value="expense">Expense</option>
                 </select>
             </div>
 
@@ -94,6 +100,42 @@
     const ITEMS_PER_PAGE = 10;
     let editingRecordId = null;
 
+    // Show message on page
+    function showPageMessage(message, type = 'success') {
+        const container = document.getElementById('messageContainer');
+        const bgColor = type === 'success' ? '#f0fdf4' : '#fef2f2';
+        const borderColor = type === 'success' ? '#27ae60' : '#e74c3c';
+        const textColor = type === 'success' ? '#166534' : '#991b1b';
+        
+        container.innerHTML = `
+            <div style="background: ${bgColor}; color: ${textColor}; border-left: 2px solid ${borderColor}; padding: 12px 14px; border-radius: 4px; font-size: 13px;">
+                ${message}
+            </div>
+        `;
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Show message in modal
+    function showModalMessage(message, type = 'error') {
+        const msgDiv = document.getElementById('modalMessage');
+        const bgColor = type === 'success' ? '#f0fdf4' : '#fef2f2';
+        const borderColor = type === 'success' ? '#27ae60' : '#e74c3c';
+        const textColor = type === 'success' ? '#166534' : '#991b1b';
+        
+        msgDiv.style.display = 'block';
+        msgDiv.style.background = bgColor;
+        msgDiv.style.color = textColor;
+        msgDiv.style.borderLeftColor = borderColor;
+        msgDiv.textContent = message;
+    }
+
+    // Clear modal message
+    function clearModalMessage() {
+        const msgDiv = document.getElementById('modalMessage');
+        msgDiv.style.display = 'none';
+        msgDiv.textContent = '';
+    }
+
     async function fetchRecords() {
         try {
             const response = await fetch(`${API_BASE_URL}/financial-records/records/`, {
@@ -105,7 +147,7 @@
 
             if (!response.ok) {
                 if (response.status === 401) {
-                    window.location.href = '/login/';
+                    window.location.href = '/login-page/';
                 }
                 throw new Error('Failed to fetch records');
             }
@@ -127,19 +169,18 @@
 
         let html = '';
         pageRecords.forEach(record => {
-            const typeEmoji = record.type_of_record === 'income' ? '📈' : '📉';
             const canDelete = USER_ROLE === 'admin';
             
             html += `
                 <tr>
                     <td>${record.date}</td>
                     <td>${record.category.toUpperCase()}</td>
-                    <td>${typeEmoji} ${record.type_of_record}</td>
+                    <td>${record.type_of_record}</td>
                     <td><strong>₹ ${parseFloat(record.amount).toFixed(2)}</strong></td>
                     <td>${record.notes || '-'}</td>
                     <td>
-                        <button class="btn" style="padding: 6px 12px; font-size: 12px; background: #667eea; color: white;" onclick="editRecord('${record.uuid}')">✏️ Edit</button>
-                        ${canDelete ? `<button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="deleteRecord('${record.uuid}')">🗑️ Delete</button>` : ''}
+                        <button class="btn" style="padding: 6px 12px; font-size: 12px; background: #1a1a1a; color: white; border-color: #1a1a1a;" onclick="editRecord('${record.uuid}')"><i class="fas fa-edit"></i> Edit</button>
+                        ${canDelete ? `<button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="deleteRecord('${record.uuid}')"><i class="fas fa-trash"></i> Delete</button>` : ''}
                     </td>
                 </tr>
             `;
@@ -183,6 +224,7 @@
         document.getElementById('modalTitle').textContent = 'Add New Record';
         document.getElementById('recordForm').reset();
         document.getElementById('date').valueAsDate = new Date();
+        clearModalMessage();
         document.getElementById('recordModal').style.display = 'block';
     }
 
@@ -196,6 +238,7 @@
             document.getElementById('amount').value = record.amount;
             document.getElementById('date').value = record.date;
             document.getElementById('notes').value = record.notes || '';
+            clearModalMessage();
             document.getElementById('recordModal').style.display = 'block';
         }
     }
@@ -203,6 +246,7 @@
     function closeModal() {
         document.getElementById('recordModal').style.display = 'none';
         editingRecordId = null;
+        clearModalMessage();
     }
 
     async function deleteRecord(uuid) {
@@ -218,14 +262,14 @@
                 });
 
                 if (response.ok) {
-                    alert('Record deleted successfully!');
+                    showPageMessage('Record deleted successfully!', 'success');
                     fetchRecords();
                 } else {
-                    alert('Failed to delete record');
+                    showPageMessage('Failed to delete record', 'error');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error deleting record: ' + error.message);
+                showPageMessage('Error: ' + error.message, 'error');
             }
         }
     }
@@ -263,16 +307,24 @@
             });
 
             if (response.ok) {
-                alert(editingRecordId ? 'Record updated successfully!' : 'Record added successfully!');
                 closeModal();
-                fetchRecords();
+                if (editingRecordId) {
+                    showPageMessage('Record updated successfully!', 'success');
+                    editingRecordId = null;
+                    fetchRecords();
+                } else {
+                    // Store message and redirect for new record
+                    sessionStorage.setItem('recordMessage', 'Record created successfully!');
+                    window.location.href = '/records/';
+                }
             } else {
                 const error = await response.json();
-                alert('Error: ' + JSON.stringify(error.Message || error));
+                const errorMsg = error.Message || error.detail || JSON.stringify(error);
+                showModalMessage(errorMsg, 'error');
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Error saving record: ' + error.message);
+            showModalMessage('Error: ' + error.message, 'error');
         }
     });
 
@@ -282,6 +334,12 @@
         if (!token) {
             window.location.href = '/login-page/';
         } else {
+            // Check for redirect message
+            const message = sessionStorage.getItem('recordMessage');
+            if (message) {
+                showPageMessage(message, 'success');
+                sessionStorage.removeItem('recordMessage');
+            }
             fetchRecords();
         }
     });
