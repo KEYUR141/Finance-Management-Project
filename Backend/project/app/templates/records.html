@@ -23,9 +23,100 @@
 <div id="contentArea" style="opacity: 1;">
     <div style="margin-bottom: 30px; display: flex; align-items: center; gap: 15px;">
         <button class="btn btn-primary" id="addRecordBtn" onclick="openAddModal()"><i class="fas fa-plus"></i> Add Record</button>
+        <button class="btn" style="background: #6c757d; color: white; border-color: #6c757d;" onclick="toggleFilterPanel()" id="filterToggleBtn"><i class="fas fa-filter"></i> Filter</button>
         <div id="restrictionMessage" style="display: none; font-size: 14px; color: #e74c3c; font-weight: 500;">
             <i class="fas fa-lock"></i> Record management is restricted to Admins only
         </div>
+    </div>
+
+    <!-- Filter Panel -->
+    <div id="filterPanel" style="display: none; background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e9ecef;">
+        <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 16px;">Search & Filter Records</h3>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+            <!-- Category Filter -->
+            <div class="form-group">
+                <label for="filterCategory" style="margin-bottom: 5px;">Category</label>
+                <select id="filterCategory" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;">
+                    <option value="">All Categories</option>
+                    <option value="salary">Salary</option>
+                    <option value="food">Food</option>
+                    <option value="rent">Rent</option>
+                    <option value="investment">Investment</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+
+            <!-- Type Filter -->
+            <div class="form-group">
+                <label for="filterType" style="margin-bottom: 5px;">Type</label>
+                <select id="filterType" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;">
+                    <option value="">All Types</option>
+                    <option value="income">Income</option>
+                    <option value="expense">Expense</option>
+                </select>
+            </div>
+
+            <!-- Date From -->
+            <div class="form-group">
+                <label for="filterDateFrom" style="margin-bottom: 5px;">Date From</label>
+                <input type="date" id="filterDateFrom" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;">
+            </div>
+
+            <!-- Date To -->
+            <div class="form-group">
+                <label for="filterDateTo" style="margin-bottom: 5px;">Date To</label>
+                <input type="date" id="filterDateTo" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;">
+            </div>
+
+            <!-- Amount Min -->
+            <div class="form-group">
+                <label for="filterAmountMin" style="margin-bottom: 5px;">Min Amount</label>
+                <input type="number" id="filterAmountMin" placeholder="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;">
+            </div>
+
+            <!-- Amount Max -->
+            <div class="form-group">
+                <label for="filterAmountMax" style="margin-bottom: 5px;">Max Amount</label>
+                <input type="number" id="filterAmountMax" placeholder="999999" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;">
+            </div>
+
+            <!-- Text Search -->
+            <div class="form-group">
+                <label for="filterSearch" style="margin-bottom: 5px;">Search (Notes/Category)</label>
+                <input type="text" id="filterSearch" placeholder="Search text..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;">
+            </div>
+
+            <!-- Sort By -->
+            <div class="form-group">
+                <label for="filterSortBy" style="margin-bottom: 5px;">Sort By</label>
+                <select id="filterSortBy" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;">
+                    <option value="date">Date</option>
+                    <option value="amount">Amount</option>
+                    <option value="created_at">Created Date</option>
+                </select>
+            </div>
+
+            <!-- Sort Order -->
+            <div class="form-group">
+                <label for="filterOrder" style="margin-bottom: 5px;">Order</label>
+                <select id="filterOrder" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;">
+                    <option value="desc">Descending</option>
+                    <option value="asc">Ascending</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Filter Buttons -->
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-primary" onclick="applyFilters()"><i class="fas fa-search"></i> Apply Filters</button>
+            <button class="btn" style="background: #ddd; color: #333; border-color: #ddd;" onclick="resetFilters()"><i class="fas fa-redo"></i> Reset</button>
+        </div>
+    </div>
+
+    <!-- Results Info -->
+    <div id="resultsInfo" style="display: none; margin-bottom: 15px; padding: 10px; background: #e7f3ff; border-left: 3px solid #2196F3; border-radius: 4px;">
+        <small><strong>Search Results:</strong> <span id="resultsInfoText"></span> <a href="#" onclick="resetFilters(); return false;" style="color: #2196F3;">Clear filters</a></small>
     </div>
 
     <div class="table-responsive">
@@ -114,6 +205,117 @@
     let allRecords = [];
     const ITEMS_PER_PAGE = 10;
     let editingRecordId = null;
+    let isFilterApplied = false;
+    let currentFilters = {};
+
+    // Toggle filter panel visibility
+    function toggleFilterPanel() {
+        const panel = document.getElementById('filterPanel');
+        const btn = document.getElementById('filterToggleBtn');
+        
+        if (panel.style.display === 'none') {
+            panel.style.display = 'block';
+            btn.style.background = '#495057';
+        } else {
+            panel.style.display = 'none';
+            btn.style.background = '#6c757d';
+        }
+    }
+
+    // Apply filters and search
+    async function applyFilters() {
+        try {
+            // Build query parameters
+            const params = new URLSearchParams();
+            
+            const category = document.getElementById('filterCategory').value;
+            const type = document.getElementById('filterType').value;
+            const dateFrom = document.getElementById('filterDateFrom').value;
+            const dateTo = document.getElementById('filterDateTo').value;
+            const amountMin = document.getElementById('filterAmountMin').value;
+            const amountMax = document.getElementById('filterAmountMax').value;
+            const search = document.getElementById('filterSearch').value;
+            const sortBy = document.getElementById('filterSortBy').value;
+            const order = document.getElementById('filterOrder').value;
+
+            if (category) params.append('category', category);
+            if (type) params.append('type', type);
+            if (dateFrom) params.append('date_from', dateFrom);
+            if (dateTo) params.append('date_to', dateTo);
+            if (amountMin) params.append('amount_min', amountMin);
+            if (amountMax) params.append('amount_max', amountMax);
+            if (search) params.append('search', search);
+            if (sortBy) params.append('sort_by', sortBy);
+            if (order) params.append('order', order);
+
+            params.append('page', 1);
+            params.append('limit', 100); // Get all results for client-side pagination
+
+            // Store current filters for reference
+            currentFilters = {
+                category, type, dateFrom, dateTo, amountMin, amountMax, search, sortBy, order
+            };
+
+            const queryString = params.toString();
+            const url = queryString ? `${API_BASE_URL}/financial-records/search/?${queryString}` : `${API_BASE_URL}/financial-records/records/`;
+
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${ACCESS_TOKEN}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    window.location.href = '/login-page/';
+                }
+                throw new Error('Failed to fetch records');
+            }
+
+            const data = await response.json();
+            allRecords = data.data || [];
+            isFilterApplied = true;
+            currentPage = 1;
+            
+            // Show results info
+            const resultsInfo = document.getElementById('resultsInfo');
+            const resultsInfoText = document.getElementById('resultsInfoText');
+            resultsInfo.style.display = 'block';
+            resultsInfoText.textContent = `${allRecords.length} record(s) found.`;
+            
+            renderRecords();
+
+        } catch (error) {
+            console.error('Error:', error);
+            showPageMessage('Error applying filters: ' + error.message, 'error');
+        }
+    }
+
+    // Reset all filters
+    function resetFilters() {
+        // Clear filter inputs
+        document.getElementById('filterCategory').value = '';
+        document.getElementById('filterType').value = '';
+        document.getElementById('filterDateFrom').value = '';
+        document.getElementById('filterDateTo').value = '';
+        document.getElementById('filterAmountMin').value = '';
+        document.getElementById('filterAmountMax').value = '';
+        document.getElementById('filterSearch').value = '';
+        document.getElementById('filterSortBy').value = 'date';
+        document.getElementById('filterOrder').value = 'desc';
+
+        // Hide results info
+        document.getElementById('resultsInfo').style.display = 'none';
+
+        // Reset flags
+        isFilterApplied = false;
+        currentFilters = {};
+        currentPage = 1;
+
+        // Fetch original records
+        fetchRecords();
+    }
 
     // Check if user is a viewer and restrict access
     function checkAccessPermissions() {

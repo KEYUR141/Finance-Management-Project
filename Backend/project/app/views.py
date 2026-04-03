@@ -56,19 +56,217 @@ class FincancialRecordsViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='records', permission_classes=[IsAuthenticated, IsViewerOrAbove])
     def get_records(self, request):
         try:
-            records_data = self.queryset
-            serializer = self.serializer_class(records_data, many=True)
+            # Start with base queryset
+            queryset = self.queryset
+            
+            # ============ SINGLE FIELD FILTERS ============
+            category = request.query_params.get('category')
+            if category:
+                queryset = queryset.filter(category__icontains=category)
+            
+            type_record = request.query_params.get('type')
+            if type_record:
+                queryset = queryset.filter(type_of_record=type_record)
+            
+            # ============ RANGE FILTERS ============
+            # Date range filtering
+            date_from = request.query_params.get('date_from')
+            if date_from:
+                try:
+                    queryset = queryset.filter(date__gte=date_from)
+                except:
+                    pass
+            
+            date_to = request.query_params.get('date_to')
+            if date_to:
+                try:
+                    queryset = queryset.filter(date__lte=date_to)
+                except:
+                    pass
+            
+            # Amount range filtering
+            amount_min = request.query_params.get('amount_min')
+            if amount_min:
+                try:
+                    queryset = queryset.filter(amount__gte=float(amount_min))
+                except:
+                    pass
+            
+            amount_max = request.query_params.get('amount_max')
+            if amount_max:
+                try:
+                    queryset = queryset.filter(amount__lte=float(amount_max))
+                except:
+                    pass
+            
+            # ============ TEXT SEARCH ============
+            search = request.query_params.get('search')
+            if search:
+                queryset = queryset.filter(
+                    Q(category__icontains=search) |
+                    Q(notes__icontains=search) |
+                    Q(type_of_record__icontains=search)
+                )
+            
+            # ============ SORTING ============
+            sort_by = request.query_params.get('sort_by', 'date')
+            order = request.query_params.get('order', 'desc')
+            
+            if order == 'desc':
+                queryset = queryset.order_by(f'-{sort_by}')
+            else:
+                queryset = queryset.order_by(sort_by)
+            
+            # ============ PAGINATION ============
+            page = int(request.query_params.get('page', 1))
+            limit = int(request.query_params.get('limit', 10))
+            
+            start = (page - 1) * limit
+            end = start + limit
+            
+            total_count = queryset.count()
+            paginated_records = queryset[start:end]
+            
+            serializer = self.serializer_class(paginated_records, many=True)
+            
             return Response({
                 'Status': True,
                 'Message': "Financial Records Retrieved",
-                'data' : serializer.data
+                'pagination': {
+                    'page': page,
+                    'limit': limit,
+                    'total_count': total_count,
+                    'total_pages': (total_count + limit - 1) // limit
+                },
+                'data': serializer.data
             })
         except Exception as e:
+            logger.error(f"Get Records Error: {str(e)}")
             return Response({
                 'Status': 'Failed',
                 'Message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+    
+    @action(detail=False, methods=['get'], url_path='search', permission_classes=[IsAuthenticated, IsViewerOrAbove])
+    def search_records(self, request):
+        """
+        Advanced search endpoint with multiple filter options.
+        Query Parameters:
+            - category: Filter by category (case-insensitive)
+            - type: Filter by type (income/expense)
+            - date_from: Filter from date (YYYY-MM-DD)
+            - date_to: Filter to date (YYYY-MM-DD)
+            - amount_min: Minimum amount
+            - amount_max: Maximum amount
+            - search: Text search in category, notes, type
+            - sort_by: Field to sort by (date, amount, created_at) - default: date
+            - order: Sort order (asc/desc) - default: desc
+            - page: Page number (default: 1)
+            - limit: Records per page (default: 10)
+        """
+        try:
+            queryset = self.queryset
+            
+            # Single field filters
+            category = request.query_params.get('category')
+            if category:
+                queryset = queryset.filter(category__icontains=category)
+            
+            type_record = request.query_params.get('type')
+            if type_record:
+                queryset = queryset.filter(type_of_record=type_record)
+            
+            # Range filters
+            date_from = request.query_params.get('date_from')
+            if date_from:
+                try:
+                    queryset = queryset.filter(date__gte=date_from)
+                except:
+                    pass
+            
+            date_to = request.query_params.get('date_to')
+            if date_to:
+                try:
+                    queryset = queryset.filter(date__lte=date_to)
+                except:
+                    pass
+            
+            # Amount range
+            amount_min = request.query_params.get('amount_min')
+            if amount_min:
+                try:
+                    queryset = queryset.filter(amount__gte=float(amount_min))
+                except:
+                    pass
+            
+            amount_max = request.query_params.get('amount_max')
+            if amount_max:
+                try:
+                    queryset = queryset.filter(amount__lte=float(amount_max))
+                except:
+                    pass
+            
+            # Text search
+            search = request.query_params.get('search')
+            if search:
+                queryset = queryset.filter(
+                    Q(category__icontains=search) |
+                    Q(notes__icontains=search) |
+                    Q(type_of_record__icontains=search)
+                )
+            
+            # Sorting
+            sort_by = request.query_params.get('sort_by', 'date')
+            order = request.query_params.get('order', 'desc')
+            
+            if order == 'desc':
+                queryset = queryset.order_by(f'-{sort_by}')
+            else:
+                queryset = queryset.order_by(sort_by)
+            
+            # Pagination
+            page = int(request.query_params.get('page', 1))
+            limit = int(request.query_params.get('limit', 10))
+            
+            start = (page - 1) * limit
+            end = start + limit
+            
+            total_count = queryset.count()
+            paginated_records = queryset[start:end]
+            
+            serializer = self.serializer_class(paginated_records, many=True)
+            
+            return Response({
+                'Status': True,
+                'Message': "Search Results Retrieved",
+                'pagination': {
+                    'page': page,
+                    'limit': limit,
+                    'total_count': total_count,
+                    'total_pages': (total_count + limit - 1) // limit
+                },
+                'filters_applied': {
+                    'category': category,
+                    'type': type_record,
+                    'date_from': date_from,
+                    'date_to': date_to,
+                    'amount_min': amount_min,
+                    'amount_max': amount_max,
+                    'search': search,
+                    'sort_by': sort_by,
+                    'order': order
+                },
+                'data': serializer.data
+            })
+        except Exception as e:
+            logger.error(f"Search Records Error: {str(e)}")
+            return Response({
+                'Status': 'Failed',
+                'Message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
     @action(detail=False, methods=['post'], url_path='add-record', permission_classes=[IsAuthenticated, IsAdminOrNot])
     def add_records(self,request):
         try:
