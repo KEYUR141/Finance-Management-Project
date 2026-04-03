@@ -294,7 +294,13 @@ class FincancialRecordsViewSet(viewsets.ModelViewSet):
         try:
             uuid = request.data.get('uuid')
             data = request.data
-            record = FinancialRecords.objects.get(uuid=uuid)
+            if not uuid or uuid is None:
+                return Response({
+                    'Status': 'Failed',
+                    'Message': 'UUID is required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            record = self.queryset.get(uuid=uuid)
             serializer_data = self.serializer_class(record, data=data, partial=True)
             if serializer_data.is_valid():
                 serializer_data.save()

@@ -115,8 +115,8 @@
     </div>
 
     <!-- Results Info -->
-    <div id="resultsInfo" style="display: none; margin-bottom: 15px; padding: 10px; background: #e7f3ff; border-left: 3px solid #2196F3; border-radius: 4px;">
-        <small><strong>Search Results:</strong> <span id="resultsInfoText"></span> <a href="#" onclick="resetFilters(); return false;" style="color: #2196F3;">Clear filters</a></small>
+    <div id="resultsInfo" style="display: none; margin-bottom: 15px; padding: 14px 16px; background: linear-gradient(135deg, #ff6b35 0%, #ff8c5a 100%); border-left: 4px solid #ff4500; border-radius: 4px; color: white; box-shadow: 0 2px 8px rgba(255, 107, 53, 0.2);">
+        <small><strong style="font-size: 14px;">🔍 Filters Applied:</strong> <span id="resultsInfoText" style="font-weight: 500;"></span> <a href="#" onclick="resetFilters(); return false;" style="color: white; text-decoration: underline; font-weight: 600;">Clear filters</a></small>
     </div>
 
     <div class="table-responsive">
@@ -278,11 +278,17 @@
             isFilterApplied = true;
             currentPage = 1;
             
-            // Show results info
+            // Show results info with enhanced styling
             const resultsInfo = document.getElementById('resultsInfo');
             const resultsInfoText = document.getElementById('resultsInfoText');
             resultsInfo.style.display = 'block';
             resultsInfoText.textContent = `${allRecords.length} record(s) found.`;
+            
+            // Highlight filter button to show filters are active
+            const filterBtn = document.getElementById('filterToggleBtn');
+            filterBtn.style.background = '#ff6b35';
+            filterBtn.style.borderColor = '#ff6b35';
+            filterBtn.innerHTML = '<i class="fas fa-filter"></i> Filter <span style="margin-left: 8px; display: inline-block; width: 8px; height: 8px; background: #fff; border-radius: 50%;"></span>';
             
             renderRecords();
 
@@ -307,6 +313,12 @@
 
         // Hide results info
         document.getElementById('resultsInfo').style.display = 'none';
+
+        // Reset filter button styling
+        const filterBtn = document.getElementById('filterToggleBtn');
+        filterBtn.style.background = '#6c757d';
+        filterBtn.style.borderColor = '#6c757d';
+        filterBtn.innerHTML = '<i class="fas fa-filter"></i> Filter';
 
         // Reset flags
         isFilterApplied = false;
@@ -392,7 +404,7 @@
 
     async function fetchRecords() {
         try {
-            const response = await fetch(`${API_BASE_URL}/financial-records/records/`, {
+            const response = await fetch(`${API_BASE_URL}/financial-records/records/?page=1&limit=100`, {
                 headers: {
                     'Authorization': `Bearer ${ACCESS_TOKEN}`,
                     'Content-Type': 'application/json'
@@ -408,6 +420,14 @@
 
             const data = await response.json();
             allRecords = data.data || [];
+            currentPage = 1;
+            
+            // Reset filter button styling since no filters active
+            const filterBtn = document.getElementById('filterToggleBtn');
+            filterBtn.style.background = '#6c757d';
+            filterBtn.style.borderColor = '#6c757d';
+            filterBtn.innerHTML = '<i class="fas fa-filter"></i> Filter';
+            
             renderRecords();
 
         } catch (error) {

@@ -11,21 +11,39 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# ============ CLOUD RUN CONFIGURATION ============
+IS_CLOUD_RUN = os.getenv('CLOUD_RUN', 'false').lower() == 'true'
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-k!dto16=72gr=!@z2@(*)1pe8bzq3i$%zu_4!h=endjp1mak!w"
+SECRET_KEY = os.getenv('SECRET_KEY', "django-insecure-k!dto16=72gr=!@z2@(*)1pe8bzq3i$%zu_4!h=endjp1mak!w")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ['*']
+# ALLOWED_HOSTS configuration for Cloud Run
+if IS_CLOUD_RUN:
+    # In Cloud Run, allow requests from the Cloud Run domain
+    ALLOWED_HOSTS = [
+        os.getenv('CLOUD_RUN_SERVICE_URL', '').replace('https://', '').replace('http://', '').split('/')[0],
+        '*.run.app',
+        'localhost',
+        '127.0.0.1',
+    ]
+else:
+    ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
 
 # Application definition
@@ -45,6 +63,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Add whitenoise for serving static files in production
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -77,59 +97,44 @@ WSGI_APPLICATION = "project.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": "/tmp/db.sqlite3" if IS_CLOUD_RUN else BASE_DIR / "db.sqlite3",
     }
 }
 
 
-
-# from dotenv import load_dotenv
-# import os
-# load_dotenv()
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': os.getenv('POSTGRES_DB'),
-#         'USER': os.getenv('POSTGRES_USER'),
-#         'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
-#         'HOST': os.getenv('POSTGRES_HOST'),
-#         'PORT': os.getenv('POSTGRES_PORT'),
-#     }
-# }
-
-#JWT Authentication settings
+# REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE': 100,
-
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.UserRateThrottle',
         'rest_framework.throttling.AnonRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'user': '100/hour',      # Authenticated users: 100 requests per hour
-        'anon': '50/hour',       # Anonymous users: 50 requests per hour
+        'user': '1000/day',      # Authenticated users: 1000 requests per day (free tier)
+        'anon': '100/day',       # Anonymous users: 100 requests per day
     }
 }
 
+# JWT Authentication settings
 from datetime import timedelta
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=1440),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=1440),  # 24 hours
     "REFRESH_TOKEN_LIFETIME": timedelta(minutes=1440),
-    "ROTATE_REFRESH_TOKENS": True,          # rotate on refresh (safer)
-    "BLACKLIST_AFTER_ROTATION": True,       # needs token_blacklist app
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
     "ALGORITHM": "HS256",
-    "SIGNING_KEY": SECRET_KEY,              # or separate env var
+    "SIGNING_KEY": SECRET_KEY,
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
-
 
 
 # Password validation
@@ -166,15 +171,74 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 
-# CORS Settings
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-]
+# Cloud Run: Use /app/staticfiles directory
+STATIC_ROOT = "/app/staticfiles" if IS_CLOUD_RUN else BASE_DIR / "staticfiles"
+
+# WhiteNoise configuration for serving static files in production
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage' if not DEBUG else 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
+# CORS Settings - configured for Cloud Run
+if IS_CLOUD_RUN:
+    # In production, only allow requests from your frontend domain
+    CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')
+else:
+    # Development: allow localhost
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "http://localhost:3000",  # If you have a separate frontend
+    ]
 
 CORS_ALLOW_CREDENTIALS = True
+
+# ============ SECURITY SETTINGS FOR PRODUCTION ============
+if IS_CLOUD_RUN and not DEBUG:
+    # HTTPS
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    
+    # HSTS (HTTP Strict Transport Security)
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    
+    # Content Security
+    SECURE_CONTENT_SECURITY_POLICY = {
+        "default-src": ("'self'",),
+        "script-src": ("'self'", "'unsafe-inline'"),  # Allow inline scripts for your Django templates
+        "style-src": ("'self'", "'unsafe-inline'"),
+    }
+
+# Logging configuration for Cloud Run
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'app': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
+}
 
 
 

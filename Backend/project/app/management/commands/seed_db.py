@@ -32,7 +32,7 @@ class Command(BaseCommand):
         # ── Validate file ──────────────────────────────────────────────
         if not os.path.exists(excel_path):
             self.stdout.write(self.style.ERROR(
-                f"\n❌ File not found: {excel_path}"
+                f"\n File not found: {excel_path}"
                 f"\n   Put the Excel file there or pass --path:"
                 f"\n   python manage.py seed_db --path /your/path/finance_seed_v3.xlsx\n"
             ))
@@ -49,10 +49,10 @@ class Command(BaseCommand):
         try:
             records_df = pd.read_excel(excel_path, sheet_name="FinancialRecords")
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f"❌ Failed to read FinancialRecords sheet: {e}"))
+            self.stdout.write(self.style.ERROR(f" Failed to read FinancialRecords sheet: {e}"))
             return
 
-        self.stdout.write(f"\n📊 Found {len(records_df)} records. Processing...\n")
+        self.stdout.write(f"\n Found {len(records_df)} records. Processing...\n")
 
         skipped = 0
         objs = []
@@ -65,7 +65,7 @@ class Command(BaseCommand):
                 user_profile = UserProfile.objects.get(email=email)
             except UserProfile.DoesNotExist:
                 self.stdout.write(self.style.WARNING(
-                    f"  ⚠️  Row {idx + 2}: UserProfile with email '{email}' not found, skipping."
+                    f"    Row {idx + 2}: UserProfile with email '{email}' not found, skipping."
                 ))
                 skipped += 1
                 continue
@@ -83,7 +83,7 @@ class Command(BaseCommand):
         FinancialRecords.objects.bulk_create(objs)
 
         soft_deleted = sum(1 for o in objs if o.is_deleted)
-        self.stdout.write(self.style.SUCCESS(f"\n✅ Seeded {len(objs)} records."))
+        self.stdout.write(self.style.SUCCESS(f"\nSeeded {len(objs)} records."))
         if skipped:
             self.stdout.write(self.style.WARNING(f"   Skipped:              {skipped} rows"))
         self.stdout.write(f"   Active records:       {len(objs) - soft_deleted}")
