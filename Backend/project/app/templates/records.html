@@ -10,31 +10,46 @@
 <!-- Message Container -->
 <div id="messageContainer" style="margin-bottom: 20px;"></div>
 
-<div style="margin-bottom: 30px;">
-    <button class="btn btn-primary" onclick="openAddModal()"><i class="fas fa-plus"></i> Add Record</button>
+<!-- Access Denied Overlay (for Viewers) - Only covers content, not sidebar -->
+<div id="accessDeniedOverlay" style="display: none; position: fixed; top: 0; left: 240px; right: 0; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 999; flex-direction: column; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 40px; border-radius: 12px; text-align: center; max-width: 400px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+        <div style="font-size: 48px; margin-bottom: 20px;">🔒</div>
+        <h2 style="margin-bottom: 10px; color: #1a1a1a; font-size: 22px;">Access Not Authorized</h2>
+        <p style="color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">You have <strong>view-only</strong> access to this application. Financial Records management is restricted to Analysts and Admins only.</p>
+        <p style="color: #999; font-size: 12px;">Contact your administrator for additional permissions.</p>
+    </div>
 </div>
 
-<div class="table-responsive">
-    <table>
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Category</th>
-                <th>Type</th>
-                <th>Amount</th>
-                <th>Notes</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="recordsTable">
-            <tr>
-                <td colspan="6" style="text-align: center; color: #999;">Loading...</td>
-            </tr>
-        </tbody>
-    </table>
-</div>
+<div id="contentArea" style="opacity: 1;">
+    <div style="margin-bottom: 30px; display: flex; align-items: center; gap: 15px;">
+        <button class="btn btn-primary" id="addRecordBtn" onclick="openAddModal()"><i class="fas fa-plus"></i> Add Record</button>
+        <div id="restrictionMessage" style="display: none; font-size: 14px; color: #e74c3c; font-weight: 500;">
+            <i class="fas fa-lock"></i> Record management is restricted to Admins only
+        </div>
+    </div>
 
-<div class="pagination" id="pagination"></div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Category</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Notes</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="recordsTable">
+                <tr>
+                    <td colspan="6" style="text-align: center; color: #999;">Loading...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination" id="pagination"></div>
+</div>
 
 <!-- Add/Edit Modal -->
 <div id="recordModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
@@ -99,6 +114,43 @@
     let allRecords = [];
     const ITEMS_PER_PAGE = 10;
     let editingRecordId = null;
+
+    // Check if user is a viewer and restrict access
+    function checkAccessPermissions() {
+        if (USER_ROLE === 'viewer') {
+            // Show access denied overlay
+            const overlay = document.getElementById('accessDeniedOverlay');
+            overlay.style.display = 'flex';
+            
+            // Disable the add record button
+            const addBtn = document.getElementById('addRecordBtn');
+            addBtn.disabled = true;
+            addBtn.style.opacity = '0.5';
+            addBtn.style.cursor = 'not-allowed';
+            
+            // Blur the content
+            const contentArea = document.getElementById('contentArea');
+            contentArea.style.filter = 'blur(3px)';
+            contentArea.style.pointerEvents = 'none';
+            
+            return false;
+        }
+        
+        // For analysts: show restriction message and disable button
+        if (USER_ROLE === 'analyst') {
+            const addBtn = document.getElementById('addRecordBtn');
+            const restrictionMsg = document.getElementById('restrictionMessage');
+            
+            addBtn.disabled = true;
+            addBtn.style.opacity = '0.4';
+            addBtn.style.cursor = 'not-allowed';
+            restrictionMsg.style.display = 'inline-flex';
+            restrictionMsg.style.alignItems = 'center';
+            restrictionMsg.style.gap = '8px';
+        }
+        
+        return true;
+    }
 
     // Show message on page
     function showPageMessage(message, type = 'success') {
@@ -169,6 +221,7 @@
 
         let html = '';
         pageRecords.forEach(record => {
+            const canEdit = USER_ROLE === 'admin';
             const canDelete = USER_ROLE === 'admin';
             
             html += `
@@ -179,7 +232,7 @@
                     <td><strong>₹ ${parseFloat(record.amount).toFixed(2)}</strong></td>
                     <td>${record.notes || '-'}</td>
                     <td>
-                        <button class="btn" style="padding: 6px 12px; font-size: 12px; background: #1a1a1a; color: white; border-color: #1a1a1a;" onclick="editRecord('${record.uuid}')"><i class="fas fa-edit"></i> Edit</button>
+                        ${canEdit ? `<button class="btn" style="padding: 6px 12px; font-size: 12px; background: #1a1a1a; color: white; border-color: #1a1a1a;" onclick="editRecord('${record.uuid}')"><i class="fas fa-edit"></i> Edit</button>` : ''}
                         ${canDelete ? `<button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="deleteRecord('${record.uuid}')"><i class="fas fa-trash"></i> Delete</button>` : ''}
                     </td>
                 </tr>
@@ -220,6 +273,12 @@
     }
 
     function openAddModal() {
+        // Only admins can add records
+        if (USER_ROLE !== 'admin') {
+            showModalMessage('Access Denied: Only Admins can add records. Contact your administrator.', 'error');
+            return;
+        }
+        
         editingRecordId = null;
         document.getElementById('modalTitle').textContent = 'Add New Record';
         document.getElementById('recordForm').reset();
@@ -229,6 +288,12 @@
     }
 
     function editRecord(uuid) {
+        // Only admins can edit records
+        if (USER_ROLE !== 'admin') {
+            showModalMessage('Access Denied: Only Admins can edit records. Contact your administrator.', 'error');
+            return;
+        }
+        
         const record = allRecords.find(r => r.uuid === uuid);
         if (record) {
             editingRecordId = uuid;
@@ -250,6 +315,12 @@
     }
 
     async function deleteRecord(uuid) {
+        // Check if user has permission
+        if (USER_ROLE !== 'admin') {
+            alert('Access Denied: Only Admins can delete records. Contact your administrator.');
+            return;
+        }
+        
         if (confirm('Are you sure you want to delete this record?')) {
             try {
                 const response = await fetch(`${API_BASE_URL}/financial-records/delete-record/`, {
@@ -286,11 +357,16 @@
             created_by: USER_UUID
         };
 
+        // Add UUID to request body for updates (not in URL)
+        if (editingRecordId) {
+            formData.uuid = editingRecordId;
+        }
+
         try {
             let endpoint, method;
             
             if (editingRecordId) {
-                endpoint = `${API_BASE_URL}/financial-records/update-record/${editingRecordId}/`;
+                endpoint = `${API_BASE_URL}/financial-records/update-record/`;
                 method = 'PATCH';
             } else {
                 endpoint = `${API_BASE_URL}/financial-records/add-record/`;
@@ -330,19 +406,31 @@
 
     // Load records on page load
     window.addEventListener('load', function() {
+        console.log('Records page loaded');
         const token = localStorage.getItem('access_token');
         if (!token) {
+            console.log('No token found, redirecting to login');
             window.location.href = '/login-page/';
-        } else {
-            // Check for redirect message
-            const message = sessionStorage.getItem('recordMessage');
-            if (message) {
-                showPageMessage(message, 'success');
-                sessionStorage.removeItem('recordMessage');
-            }
+            return;
+        }
+        
+        console.log('Token found, checking access permissions');
+        // Check access permissions for viewers
+        const hasAccess = checkAccessPermissions();
+        
+        // Check for redirect message
+        const message = sessionStorage.getItem('recordMessage');
+        if (message) {
+            showPageMessage(message, 'success');
+            sessionStorage.removeItem('recordMessage');
+        }
+        
+        // Only load records if user has access
+        if (hasAccess) {
+            console.log('User has access, fetching records');
             fetchRecords();
         }
-    });
+    }, { once: true }); // Only execute once
 
     // Close modal when clicking outside
     window.onclick = function(event) {

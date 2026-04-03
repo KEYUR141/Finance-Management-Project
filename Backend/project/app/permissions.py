@@ -6,7 +6,8 @@ class IsAdminOrNot(BasePermission):
     def has_permission(self, request, view):
         try:
             return (
-                request.user.is_authenticated and
+                request.user.is_authenticated and 
+                hasattr(request.user, 'profile') and
                 request.user.profile.role == 'admin'
             )
         except Exception as e:
@@ -26,6 +27,7 @@ class IsViewerOrAbove(BasePermission):
         try:
             return (
                 request.user.is_authenticated and
+                hasattr(request.user, 'profile') and
                 request.user.profile.role in ['viewer', 'analyst', 'admin']
             )
         except Exception as e:

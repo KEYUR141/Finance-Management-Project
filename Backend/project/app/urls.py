@@ -3,7 +3,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 #Importing Views Logic
-from .views import AuthenticationViewSet, FincancialRecordsViewSet
+from .views import AuthenticationViewSet, FincancialRecordsViewSet, DashboardKPIView
 from .template_views import get_user_profile
 
 router = DefaultRouter()
@@ -13,4 +13,5 @@ urlpatterns = [
     path('', include(router.urls)),
     path('login/', AuthenticationViewSet.as_view(), name='api-login'),
     path('users/<uuid:uuid>/', get_user_profile, name='get-user-profile'),
+    path('dashboard/summary/', DashboardKPIView.as_view(), name='dashboard-summary'),
 ]

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Finance Dashboard{% endblock %}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <style>
         * {
             margin: 0;
@@ -482,15 +483,18 @@
             window.location.href = '/login-page/';
         }
 
-        // Check authentication on page load for all pages except login
+        // Only redirect FROM dashboard/records/profile if no token
+        // DON'T redirect from login page or just after login
         window.addEventListener('load', function() {
             const token = localStorage.getItem('access_token');
             const currentPath = window.location.pathname;
             
-            // If no token and not already on login page, redirect to login
-            if (!token && !currentPath.includes('login')) {
-                window.location.href = '/login-page/';
+            // Only check for login page - let dashboard/records handle their own redirects
+            if (!token && currentPath.includes('/login-page/')) {
+                // Already on login page, do nothing
+                return;
             }
+            // Don't auto-redirect - let each page handle it based on API responses
         });
     </script>
 </body>

@@ -27,6 +27,19 @@
     </div>
 </div>
 
+<!-- Charts Section -->
+<div style="display: grid; grid-template-columns: 350px 1fr; gap: 30px; margin-top: 30px;">
+    <div style="background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <h3 style="margin-bottom: 20px; font-size: 14px; font-weight: 600; color: #1a1a1a;">Income vs Expense</h3>
+        <canvas id="incomeExpenseChart"></canvas>
+    </div>
+
+    <div style="background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <h3 style="margin-bottom: 20px; font-size: 14px; font-weight: 600; color: #1a1a1a;">Top 5 Categories</h3>
+        <canvas id="topCategoriesChart"></canvas>
+    </div>
+</div>
+
 <h2 style="margin-top: 30px; margin-bottom: 15px; font-size: 14px; font-weight: 600; color: #1a1a1a;">Category Wise Breakdown</h2>
 <div class="table-responsive">
     <table>
@@ -68,11 +81,23 @@
 
 <script>
     const API_BASE_URL = 'http://localhost:8000/api';
-    const ACCESS_TOKEN = localStorage.getItem('access_token');
+    
+    // Chart instances (global scope to destroy/update if needed)
+    let incomeExpenseChart = null;
+    let topCategoriesChart = null;
 
     async function fetchDashboardData() {
         try {
-            const response = await fetch(`${API_BASE_URL}/financial-records/records/`, {
+            // Get token at runtime, not at load time
+            const ACCESS_TOKEN = localStorage.getItem('access_token');
+            
+            if (!ACCESS_TOKEN) {
+                console.warn('No access token found');
+                return;
+            }
+            
+            console.log('Fetching dashboard data with token');
+            const response = await fetch(`${API_BASE_URL}/dashboard/summary/`, {
                 headers: {
                     'Authorization': `Bearer ${ACCESS_TOKEN}`,
                     'Content-Type': 'application/json'
@@ -81,67 +106,53 @@
 
             if (!response.ok) {
                 if (response.status === 401) {
-                    window.location.href = '/login-page/';
-                    return;
+                    console.warn('401 Unauthorized on dashboard API');
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('refresh_token');
+                    // Don't redirect here - let the user manually go back
+                    throw new Error('Token invalid or expired');
                 }
-                throw new Error('Failed to fetch records');
+                throw new Error(`API error: ${response.status}`);
             }
 
-            const data = await response.json();
-            const records = data.data || [];
-
-            // Calculate KPIs
-            let totalIncome = 0;
-            let totalExpense = 0;
-            const categoryMap = {};
-
-            records.forEach(record => {
-                const amount = parseFloat(record.amount) || 0;
-                
-                if (record.type_of_record === 'income') {
-                    totalIncome += amount;
-                } else if (record.type_of_record === 'expense') {
-                    totalExpense += amount;
-                }
-
-                const key = `${record.category}_${record.type_of_record}`;
-                if (!categoryMap[key]) {
-                    categoryMap[key] = { 
-                        category: record.category, 
-                        type: record.type_of_record, 
-                        count: 0, 
-                        amount: 0 
-                    };
-                }
-                categoryMap[key].count += 1;
-                categoryMap[key].amount += amount;
-            });
-
-            const netBalance = totalIncome - totalExpense;
+            const apiData = await response.json();
+            const dashboardData = apiData.data;
+            
+            const kpis = dashboardData.kpis || {};
+            const categoryBreakdown = dashboardData.category_breakdown || [];
+            const topCategories = dashboardData.top_categories || [];
+            const recentTransactions = dashboardData.recent_transactions || [];
+            const ratios = dashboardData.ratios || {};
 
             // Update KPI cards
-            document.getElementById('totalIncome').textContent = `₹ ${totalIncome.toFixed(2)}`;
-            document.getElementById('totalExpense').textContent = `₹ ${totalExpense.toFixed(2)}`;
-            document.getElementById('netBalance').textContent = `₹ ${netBalance.toFixed(2)}`;
+            document.getElementById('totalIncome').textContent = `₹ ${(kpis.total_income || 0).toFixed(2)}`;
+            document.getElementById('totalExpense').textContent = `₹ ${(kpis.total_expense || 0).toFixed(2)}`;
+            document.getElementById('netBalance').textContent = `₹ ${(kpis.net_balance || 0).toFixed(2)}`;
             
+            // Render Income vs Expense Pie Chart
+            renderIncomeExpenseChart(kpis.total_income || 0, kpis.total_expense || 0);
+
+            // Render Top 5 Categories Bar Chart
+            renderTopCategoriesChart(topCategories);
+
             // Update category table
             let categoryHtml = '';
-            Object.values(categoryMap).forEach(cat => {
-                const typeLabel = cat.type === 'income' ? 'Income' : 'Expense';
+            categoryBreakdown.forEach(cat => {
+                const typeLabel = cat.type_of_record === 'income' ? 'Income' : 'Expense';
                 categoryHtml += `
                     <tr>
                         <td><strong>${cat.category.toUpperCase()}</strong></td>
                         <td>${typeLabel}</td>
                         <td>${cat.count}</td>
-                        <td>₹ ${cat.amount.toFixed(2)}</td>
+                        <td>₹ ${parseFloat(cat.total_amount).toFixed(2)}</td>
                     </tr>
                 `;
             });
             document.getElementById('categoryTable').innerHTML = categoryHtml || '<tr><td colspan="4" style="text-align: center; color: #888;">No data</td></tr>';
 
-            // Update recent transactions (last 5)
+            // Update recent transactions table
             let recentHtml = '';
-            records.slice(0, 5).forEach(record => {
+            recentTransactions.forEach(record => {
                 const typeLabel = record.type_of_record === 'income' ? 'Income' : 'Expense';
                 recentHtml += `
                     <tr>
@@ -162,14 +173,118 @@
         }
     }
 
+    function renderIncomeExpenseChart(income, expense) {
+        const ctx = document.getElementById('incomeExpenseChart').getContext('2d');
+        
+        // Destroy existing chart if it exists
+        if (incomeExpenseChart) {
+            incomeExpenseChart.destroy();
+        }
+
+        incomeExpenseChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['Income', 'Expense'],
+                datasets: [{
+                    data: [income, expense],
+                    backgroundColor: [
+                        '#10b981', // Green for income
+                        '#ef4444'  // Red for expense
+                    ],
+                    borderColor: '#ffffff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: { size: 12 },
+                            color: '#1a1a1a',
+                            padding: 15
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderTopCategoriesChart(topCategories) {
+        const ctx = document.getElementById('topCategoriesChart').getContext('2d');
+        
+        // Destroy existing chart if it exists
+        if (topCategoriesChart) {
+            topCategoriesChart.destroy();
+        }
+
+        // Prepare data
+        const labels = topCategories.map(cat => cat.category.toUpperCase());
+        const amounts = topCategories.map(cat => parseFloat(cat.total_amount) || 0);
+        
+        // Color coding: green for income, red for expense
+        const colors = topCategories.map(cat => 
+            cat.type_of_record === 'income' ? '#10b981' : '#ef4444'
+        );
+
+        topCategoriesChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Amount (₹)',
+                    data: amounts,
+                    backgroundColor: colors,
+                    borderColor: colors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#666'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: '#666'
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     // Load data on page load
     window.addEventListener('load', function() {
         const token = localStorage.getItem('access_token');
         if (!token) {
+            // No token, redirect once
+            console.log('No token found on dashboard load, redirecting to login');
             window.location.href = '/login-page/';
-        } else {
-            fetchDashboardData();
+            return;
         }
-    });
+        // Token exists, load dashboard data
+        console.log('Token found, loading dashboard data');
+        fetchDashboardData();
+    }, { once: true }); // Only execute once to prevent multiple calls
 </script>
 {% endblock %}

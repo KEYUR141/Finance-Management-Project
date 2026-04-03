@@ -112,6 +112,36 @@
             color: #bbb;
         }
 
+        .password-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-wrapper input {
+            flex: 1;
+            padding-right: 40px;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #666;
+            font-size: 16px;
+            padding: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s ease;
+        }
+
+        .toggle-password:hover {
+            color: #1a1a1a;
+        }
+
         .btn-login {
             width: 100%;
             padding: 11px;
@@ -164,6 +194,70 @@
         .helper-text strong {
             color: #1a1a1a;
             font-weight: 600;
+        }
+
+        .demo-accounts {
+            margin-top: 20px;
+        }
+
+        .demo-card {
+            background: #f9f9f9;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+
+        .demo-card-title {
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .demo-card-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 6px;
+        }
+
+        .badge-admin {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-analyst {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-viewer {
+            background: #f0fdf4;
+            color: #166534;
+        }
+
+        .demo-card-field {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            padding: 4px 0;
+        }
+
+        .demo-card-label {
+            font-weight: 500;
+            color: #666;
+        }
+
+        .demo-card-value {
+            color: #1a1a1a;
+            font-weight: 600;
+            word-break: break-all;
         }
 
         .loading {
@@ -254,6 +348,8 @@
                 {% endfor %}
             {% endif %}
 
+            <div id="loginErrorMessage" style="display: none;"></div>
+
             <form id="loginForm" onsubmit="handleLogin(event)">
                 <div class="form-group">
                     <label for="email">Email or Username</label>
@@ -268,13 +364,18 @@
 
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input 
-                        type="password" 
-                        id="password" 
-                        name="password" 
-                        placeholder="Enter your password"
-                        required
-                    >
+                    <div class="password-wrapper">
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            placeholder="Enter your password"
+                            required
+                        >
+                        <button type="button" class="toggle-password" id="togglePassword" onclick="togglePasswordVisibility(event)">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-login">Login</button>
@@ -286,9 +387,69 @@
             </form>
 
             <div class="helper-text">
-                <p><strong>Demo Account:</strong></p>
-                <p>Email: <strong>k@gmail.com</strong></p>
-                <p>Password: <strong>test123</strong></p>
+                <p style="margin-bottom: 12px; font-weight: 600; color: #1a1a1a;"><i class="fas fa-keyboard"></i> Demo Accounts</p>
+                
+                <div class="demo-accounts">
+                    <!-- Admin Account -->
+                    <div class="demo-card">
+                        <div class="demo-card-title">
+                            <i class="fas fa-shield-alt"></i> Admin
+                            <span class="demo-card-badge badge-admin">ADMIN</span>
+                        </div>
+                        <div class="demo-card-field">
+                            <span class="demo-card-label">Username:</span>
+                            <span class="demo-card-value">Demo_admin</span>
+                        </div>
+                        <div class="demo-card-field">
+                            <span class="demo-card-label">Email:</span>
+                            <span class="demo-card-value">demo.admin@gmail.com</span>
+                        </div>
+                        <div class="demo-card-field">
+                            <span class="demo-card-label">Password:</span>
+                            <span class="demo-card-value">demo@admin2026</span>
+                        </div>
+                    </div>
+
+                    <!-- Analyst Account -->
+                    <div class="demo-card">
+                        <div class="demo-card-title">
+                            <i class="fas fa-chart-line"></i> Analyst
+                            <span class="demo-card-badge badge-analyst">ANALYST</span>
+                        </div>
+                        <div class="demo-card-field">
+                            <span class="demo-card-label">Username:</span>
+                            <span class="demo-card-value">Demo_analyst</span>
+                        </div>
+                        <div class="demo-card-field">
+                            <span class="demo-card-label">Email:</span>
+                            <span class="demo-card-value">demo.analyst@gmail.com</span>
+                        </div>
+                        <div class="demo-card-field">
+                            <span class="demo-card-label">Password:</span>
+                            <span class="demo-card-value">demo@analyst2026</span>
+                        </div>
+                    </div>
+
+                    <!-- Viewer Account -->
+                    <div class="demo-card">
+                        <div class="demo-card-title">
+                            <i class="fas fa-eye"></i> Viewer
+                            <span class="demo-card-badge badge-viewer">VIEWER</span>
+                        </div>
+                        <div class="demo-card-field">
+                            <span class="demo-card-label">Username:</span>
+                            <span class="demo-card-value">Demo_viewer</span>
+                        </div>
+                        <div class="demo-card-field">
+                            <span class="demo-card-label">Email:</span>
+                            <span class="demo-card-value">demo.viewer@gmail.com</span>
+                        </div>
+                        <div class="demo-card-field">
+                            <span class="demo-card-label">Password:</span>
+                            <span class="demo-card-value">demo@viewer2026</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -301,6 +462,13 @@
             const password = document.getElementById('password').value;
             const loginForm = document.getElementById('loginForm');
             const loading = document.getElementById('loading');
+            const errorMessage = document.getElementById('loginErrorMessage');
+            
+            console.log('Login attempt with email:', email);
+            
+            // Clear previous error message
+            errorMessage.style.display = 'none';
+            errorMessage.innerHTML = '';
 
             // Show loading
             loading.style.display = 'block';
@@ -308,6 +476,7 @@
             loginForm.style.pointerEvents = 'none';
 
             try {
+                console.log('Sending POST request to /api/login/');
                 const response = await fetch('/api/login/', {
                     method: 'POST',
                     headers: {
@@ -319,29 +488,58 @@
                     })
                 });
 
+                console.log('Response status:', response.status);
                 const data = await response.json();
+                console.log('Response data:', data);
 
                 if (response.ok) {
+                    console.log('Login successful, storing tokens');
                     // Store tokens in localStorage
                     localStorage.setItem('access_token', data.tokens.access);
                     localStorage.setItem('refresh_token', data.tokens.refresh);
                     localStorage.setItem('user_uuid', data.uuid);
                     localStorage.setItem('user_role', data.role);
                     
+                    console.log('Tokens stored, redirecting to dashboard');
                     // Redirect to dashboard
-                    window.location.href = '/dashboard/';
+                    setTimeout(() => {
+                        window.location.href = '/dashboard/';
+                    }, 500);
                 } else {
-                    alert('Login failed: ' + (data.error || 'Unknown error'));
+                    const errorText = data.error || 'Unknown error';
+                    console.error('Login failed:', errorText);
+                    errorMessage.innerHTML = '<strong>Login failed:</strong> ' + errorText;
+                    errorMessage.className = 'alert alert-error';
+                    errorMessage.style.display = 'block';
+                    
                     loading.style.display = 'none';
                     loginForm.style.opacity = '1';
                     loginForm.style.pointerEvents = 'auto';
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Login error: ' + error.message);
+                errorMessage.innerHTML = '<strong>Login error:</strong> ' + error.message;
+                errorMessage.className = 'alert alert-error';
+                errorMessage.style.display = 'block';
+                
                 loading.style.display = 'none';
                 loginForm.style.opacity = '1';
                 loginForm.style.pointerEvents = 'auto';
+            }
+        }
+
+        // Toggle password visibility
+        function togglePasswordVisibility(event) {
+            event.preventDefault();
+            const passwordInput = document.getElementById('password');
+            const toggleBtn = document.getElementById('togglePassword');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleBtn.innerHTML = '<i class="fas fa-eye-slash"></i>';
+            } else {
+                passwordInput.type = 'password';
+                toggleBtn.innerHTML = '<i class="fas fa-eye"></i>';
             }
         }
 
