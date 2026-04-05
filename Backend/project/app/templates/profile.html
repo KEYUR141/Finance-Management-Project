@@ -7,6 +7,28 @@
 {% block nav_profile %}active{% endblock %}
 
 {% block content %}
+<!-- Loading Overlay -->
+<div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); z-index: 9999; justify-content: center; align-items: center;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+        <div style="
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        "></div>
+        <p style="color: #333; font-size: 16px; font-weight: 500; margin: 0;">Loading...</p>
+    </div>
+</div>
+
+<style>
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+
 <div style="max-width: 600px;">
     <div class="card">
         <h2 style="margin-bottom: 20px;">Profile Information</h2>
@@ -75,12 +97,21 @@
 </div>
 
 <script>
-    const API_BASE_URL = 'http://localhost:8000/api';
+    const API_BASE_URL = '/api';
     const ACCESS_TOKEN = localStorage.getItem('access_token');
     const USER_UUID = localStorage.getItem('user_uuid');
 
+    function showLoading() {
+        document.getElementById('loadingOverlay').style.display = 'flex';
+    }
+
+    function hideLoading() {
+        document.getElementById('loadingOverlay').style.display = 'none';
+    }
+
     async function fetchUserProfile() {
         try {
+            showLoading();
             const response = await fetch(`${API_BASE_URL}/users/${USER_UUID}/`, {
                 headers: {
                     'Authorization': `Bearer ${ACCESS_TOKEN}`,
@@ -120,6 +151,8 @@
         } catch (error) {
             console.error('Error:', error);
             alert('Error loading profile: ' + error.message);
+        } finally {
+            hideLoading();
         }
     }
 
@@ -150,6 +183,7 @@
         }
 
         try {
+            showLoading();
             const response = await fetch(`${API_BASE_URL}/users/${USER_UUID}/change-password/`, {
                 method: 'POST',
                 headers: {
@@ -172,6 +206,8 @@
         } catch (error) {
             console.error('Error:', error);
             alert('Error changing password: ' + error.message);
+        } finally {
+            hideLoading();
         }
     });
 

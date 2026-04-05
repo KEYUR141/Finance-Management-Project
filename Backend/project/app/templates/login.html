@@ -498,6 +498,8 @@
                     localStorage.setItem('access_token', data.tokens.access);
                     localStorage.setItem('refresh_token', data.tokens.refresh);
                     localStorage.setItem('user_uuid', data.uuid);
+                    localStorage.setItem('user_name', data.user_name);
+                    localStorage.setItem('user_email', data.email);
                     localStorage.setItem('user_role', data.role);
                     
                     console.log('Tokens stored, redirecting to dashboard');

@@ -33,15 +33,17 @@ class AuthenticationViewSet(APIView):
         password = request.data.get("password")
 
         if not email or not password:
-            logger.warning("Missing email/username or password in login request")
+            logger.warning("Authentication attempt with missing credentials - email or password not provided")
             return Response({"error": "Email and password required"}, status=400)
 
         try:
+            logger.info(f"Authentication attempt for user: {email}")
             res = UserAuthService.login(email, password)
+            logger.info(f"Successful login for user: {email}")
             return Response(res, status=200)
 
         except Exception as e:
-            logger.error(f"Login failed: {str(e)}")
+            logger.error(f"Authentication failed for user {email}: {str(e)}", exc_info=True)
             return Response({"error": str(e)}, status=401)
 
 
@@ -56,6 +58,7 @@ class FincancialRecordsViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='records', permission_classes=[IsAuthenticated, IsViewerOrAbove])
     def get_records(self, request):
         try:
+            logger.info("Fetching all financial records")
             # Start with base queryset
             queryset = self.queryset
             
@@ -63,10 +66,12 @@ class FincancialRecordsViewSet(viewsets.ModelViewSet):
             category = request.query_params.get('category')
             if category:
                 queryset = queryset.filter(category__icontains=category)
+                logger.debug(f"Filtering records by category: {category}")
             
             type_record = request.query_params.get('type')
             if type_record:
                 queryset = queryset.filter(type_of_record=type_record)
+                logger.debug(f"Filtering records by type: {type_record}")
             
             # ============ RANGE FILTERS ============
             # Date range filtering
@@ -74,14 +79,18 @@ class FincancialRecordsViewSet(viewsets.ModelViewSet):
             if date_from:
                 try:
                     queryset = queryset.filter(date__gte=date_from)
+                    logger.debug(f"Filtering records from date: {date_from}")
                 except:
+                    logger.warning(f"Invalid date_from format: {date_from}")
                     pass
             
             date_to = request.query_params.get('date_to')
             if date_to:
                 try:
                     queryset = queryset.filter(date__lte=date_to)
+                    logger.debug(f"Filtering records to date: {date_to}")
                 except:
+                    logger.warning(f"Invalid date_to format: {date_to}")
                     pass
             
             # Amount range filtering
@@ -89,14 +98,18 @@ class FincancialRecordsViewSet(viewsets.ModelViewSet):
             if amount_min:
                 try:
                     queryset = queryset.filter(amount__gte=float(amount_min))
+                    logger.debug(f"Filtering records with minimum amount: {amount_min}")
                 except:
+                    logger.warning(f"Invalid amount_min value: {amount_min}")
                     pass
             
             amount_max = request.query_params.get('amount_max')
             if amount_max:
                 try:
                     queryset = queryset.filter(amount__lte=float(amount_max))
+                    logger.debug(f"Filtering records with maximum amount: {amount_max}")
                 except:
+                    logger.warning(f"Invalid amount_max value: {amount_max}")
                     pass
             
             # ============ TEXT SEARCH ============
@@ -107,6 +120,7 @@ class FincancialRecordsViewSet(viewsets.ModelViewSet):
                     Q(notes__icontains=search) |
                     Q(type_of_record__icontains=search)
                 )
+                logger.debug(f"Text search applied: {search}")
             
             # ============ SORTING ============
             sort_by = request.query_params.get('sort_by', 'date')
@@ -116,6 +130,7 @@ class FincancialRecordsViewSet(viewsets.ModelViewSet):
                 queryset = queryset.order_by(f'-{sort_by}')
             else:
                 queryset = queryset.order_by(sort_by)
+            logger.debug(f"Sorting by {sort_by} in {order} order")
             
             # ============ PAGINATION ============
             page = int(request.query_params.get('page', 1))
@@ -129,6 +144,8 @@ class FincancialRecordsViewSet(viewsets.ModelViewSet):
             
             serializer = self.serializer_class(paginated_records, many=True)
             
+            logger.info(f"Retrieved {len(paginated_records)} records from page {page} with limit {limit}, total: {total_count}")
+            
             return Response({
                 'Status': True,
                 'Message': "Financial Records Retrieved",
@@ -141,7 +158,7 @@ class FincancialRecordsViewSet(viewsets.ModelViewSet):
                 'data': serializer.data
             })
         except Exception as e:
-            logger.error(f"Get Records Error: {str(e)}")
+            logger.error(f"Error retrieving records: {str(e)}", exc_info=True)
             return Response({
                 'Status': 'Failed',
                 'Message': str(e)
@@ -271,19 +288,23 @@ class FincancialRecordsViewSet(viewsets.ModelViewSet):
     def add_records(self,request):
         try:
             data = request.data
+            logger.info(f"Creating new financial record with amount: {data.get('amount')}, category: {data.get('category')}")
             serializer_data = self.serializer_class(data=data)
             if serializer_data.is_valid():
                 serializer_data.save()
+                logger.info(f"Financial record created successfully with UUID: {serializer_data.data.get('uuid')}")
                 return Response({
                     'Status': True,
                     'Message': "Financial Record Added",
                     'data' : serializer_data.data
                 })
+            logger.warning(f"Record creation validation failed: {serializer_data.errors}")
             return Response({
                 'Status': 'Failed',
                 'Message': serializer_data.errors
             }, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
+            logger.error(f"Error adding financial record: {str(e)}", exc_info=True)
             return Response({
                 'Status': 'Failed',
                 'Message': str(e)
@@ -295,25 +316,30 @@ class FincancialRecordsViewSet(viewsets.ModelViewSet):
             uuid = request.data.get('uuid')
             data = request.data
             if not uuid or uuid is None:
+                logger.warning("Update request received without UUID")
                 return Response({
                     'Status': 'Failed',
                     'Message': 'UUID is required'
                 }, status=status.HTTP_400_BAD_REQUEST)
             
+            logger.info(f"Updating financial record UUID: {uuid}")
             record = self.queryset.get(uuid=uuid)
             serializer_data = self.serializer_class(record, data=data, partial=True)
             if serializer_data.is_valid():
                 serializer_data.save()
+                logger.info(f"Financial record updated successfully - UUID: {uuid}")
                 return Response({
                     'Status': True,
                     'Message': "Financial Record Updated",
                     'data' : serializer_data.data
                 })
+            logger.warning(f"Record update validation failed for UUID {uuid}: {serializer_data.errors}")
             return Response({
                 'Status': 'Failed',
                 'Message': serializer_data.errors
             }, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
+            logger.error(f"Error updating financial record: {str(e)}", exc_info=True)
             return Response({
                 'Status': 'Failed',
                 'Message': str(e)
@@ -323,14 +349,17 @@ class FincancialRecordsViewSet(viewsets.ModelViewSet):
     def delete_records(self, request):
         try:
             instance = request.data.get('uuid')
+            logger.info(f"Deleting financial record UUID: {instance}")
             record = FinancialRecords.objects.get(uuid=instance)
             record.is_deleted = True
             record.save()
+            logger.info(f"Financial record deleted successfully (soft delete) - UUID: {instance}")
             return Response({
                 'Status': True,
                 'Message': "Financial Record Deleted",
             })
         except Exception as e:
+            logger.error(f"Error deleting financial record: {str(e)}", exc_info=True)
             return Response({
                 'Status': 'Failed',
                 'Message': str(e)
@@ -343,6 +372,7 @@ class DashboardKPIView(APIView):
 
     def get(self, request):
         try:
+            logger.info("Generating dashboard KPI summary")
             # TIER 1: CORE KPIs
             total_income = FinancialRecords.objects.filter(
                 type_of_record='income', is_deleted=False
@@ -353,6 +383,7 @@ class DashboardKPIView(APIView):
             ).aggregate(total=Sum('amount'))['total'] or 0
             
             net_balance = total_income - total_expense
+            logger.debug(f"Core KPIs - Total Income: {total_income}, Total Expense: {total_expense}, Net Balance: {net_balance}")
 
             # CURRENT MONTH METRICS 
             now = timezone.now()
@@ -371,6 +402,7 @@ class DashboardKPIView(APIView):
             ).aggregate(total=Sum('amount'))['total'] or 0
             
             current_month_balance = current_month_income - current_month_expense
+            logger.debug(f"Current month metrics - Income: {current_month_income}, Expense: {current_month_expense}")
 
             # TIER 2: CATEGORY BREAKDOWN
             category_breakdown = []
@@ -388,6 +420,7 @@ class DashboardKPIView(APIView):
                     'count': cat['count'],
                     'amount': float(cat['total_amount'] or 0)
                 })
+            logger.debug(f"Category breakdown generated with {len(category_breakdown)} categories")
 
             # TOP 5 CATEGORIES BY AMOUNT
             top_categories = []
@@ -402,6 +435,7 @@ class DashboardKPIView(APIView):
                     'category': cat['category'],
                     'amount': float(cat['total_amount'] or 0)
                 })
+            logger.debug(f"Top categories identified: {[cat['category'] for cat in top_categories]}")
 
             # RECENT TRANSACTIONS
             recent_transactions = []
@@ -417,6 +451,7 @@ class DashboardKPIView(APIView):
                     'amount': float(record.amount),
                     'notes': record.notes or ''
                 })
+            logger.debug(f"Retrieved {len(recent_transactions)} recent transactions")
 
             # INCOME vs EXPENSE RATIO 
             total_transactions = total_income + total_expense
@@ -426,6 +461,7 @@ class DashboardKPIView(APIView):
             else:
                 income_percentage = 0
                 expense_percentage = 0
+            logger.debug(f"Income/Expense ratio - Income: {income_percentage}%, Expense: {expense_percentage}%")
 
             # STATISTICS 
             total_record_count = FinancialRecords.objects.filter(
@@ -446,7 +482,10 @@ class DashboardKPIView(APIView):
                 count=Count('uuid')
             ).order_by('-count').first()
             most_frequent_category = most_frequent['category'] if most_frequent else 'N/A'
+            logger.debug(f"Total records: {total_record_count}, Average transaction: {avg_transaction}, Most frequent: {most_frequent_category}")
 
+            logger.info("Dashboard KPI summary generated successfully")
+            
             # RETURN RESPONSE
             return Response({
                 'Status': True,
@@ -475,7 +514,7 @@ class DashboardKPIView(APIView):
                 }
             })
         except Exception as e:
-            logger.error(f"Dashboard KPI Error: {str(e)}")
+            logger.error(f"Error generating dashboard KPI summary: {str(e)}", exc_info=True)
             return Response({
                 'Status': False,
                 'Message': str(e)

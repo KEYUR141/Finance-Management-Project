@@ -450,8 +450,8 @@
                     <h1>{% block page_title %}{% endblock %}</h1>
                 </div>
                 <div class="user-info">
-                    <p><strong>{{ user.username }}</strong></p>
-                    <p>Role: <span style="color: #3498db; font-weight: 600;">{{ user.profile.role|upper }}</span></p>
+                    <p><strong id="userNameDisplay">Loading...</strong></p>
+                    <p>Role: <span style="color: #3498db; font-weight: 600;" id="userRoleDisplay">Loading...</span></p>
                 </div>
             </div>
 
@@ -471,6 +471,42 @@
     </div>
 
     <script>
+        // Display user info from localStorage
+        function displayUserInfo() {
+            const token = localStorage.getItem('access_token');
+            const userUuid = localStorage.getItem('user_uuid');
+            const userName = localStorage.getItem('user_name');
+            const userRole = localStorage.getItem('user_role');
+            
+            // Update display elements
+            if (userName) {
+                document.getElementById('userNameDisplay').textContent = userName;
+            }
+            if (userRole) {
+                document.getElementById('userRoleDisplay').textContent = userRole.toUpperCase();
+            }
+            
+            // Fetch from API if not in localStorage
+            if (token && userUuid && !userName) {
+                fetch(`/api/users/${userUuid}/`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data) {
+                        localStorage.setItem('user_name', data.user_name || data.email);
+                        localStorage.setItem('user_role', data.role);
+                        document.getElementById('userNameDisplay').textContent = data.user_name || data.email;
+                        document.getElementById('userRoleDisplay').textContent = (data.role || 'viewer').toUpperCase();
+                    }
+                })
+                .catch(err => console.log('Could not fetch user info'));
+            }
+        }
+
         // Handle logout
         function handleLogout(event) {
             event.preventDefault();
@@ -479,9 +515,13 @@
             localStorage.removeItem('refresh_token');
             localStorage.removeItem('user_uuid');
             localStorage.removeItem('user_role');
+            localStorage.removeItem('user_name');
             // Redirect to login
             window.location.href = '/login-page/';
         }
+
+        // Display user info on page load
+        window.addEventListener('DOMContentLoaded', displayUserInfo);
 
         // Only redirect FROM dashboard/records/profile if no token
         // DON'T redirect from login page or just after login

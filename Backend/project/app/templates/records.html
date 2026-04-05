@@ -10,6 +10,30 @@
 <!-- Message Container -->
 <div id="messageContainer" style="margin-bottom: 20px;"></div>
 
+<!-- Loading Overlay -->
+<div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); z-index: 1001; display: none; justify-content: center; align-items: center;">
+    <div style="text-align: center; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+        <div class="spinner" style="margin: 0 auto 20px;"></div>
+        <p style="color: #333; font-size: 16px; font-weight: 500; margin: 0;">Loading...</p>
+    </div>
+</div>
+
+<style>
+    .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+
 <!-- Access Denied Overlay (for Viewers) - Only covers content, not sidebar -->
 <div id="accessDeniedOverlay" style="display: none; position: fixed; top: 0; left: 240px; right: 0; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 999; flex-direction: column; align-items: center; justify-content: center;">
     <div style="background: white; padding: 40px; border-radius: 12px; text-align: center; max-width: 400px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
@@ -196,7 +220,7 @@
 </div>
 
 <script>
-    const API_BASE_URL = 'http://localhost:8000/api';
+    const API_BASE_URL = '/api';
     const ACCESS_TOKEN = localStorage.getItem('access_token');
     const USER_UUID = localStorage.getItem('user_uuid');
     const USER_ROLE = localStorage.getItem('user_role');
@@ -207,6 +231,17 @@
     let editingRecordId = null;
     let isFilterApplied = false;
     let currentFilters = {};
+
+    // Loading overlay functions
+    function showLoading() {
+        const overlay = document.getElementById('loadingOverlay');
+        overlay.style.display = 'flex';
+    }
+
+    function hideLoading() {
+        const overlay = document.getElementById('loadingOverlay');
+        overlay.style.display = 'none';
+    }
 
     // Toggle filter panel visibility
     function toggleFilterPanel() {
@@ -225,6 +260,7 @@
     // Apply filters and search
     async function applyFilters() {
         try {
+            showLoading();
             // Build query parameters
             const params = new URLSearchParams();
             
@@ -295,6 +331,80 @@
         } catch (error) {
             console.error('Error:', error);
             showPageMessage('Error applying filters: ' + error.message, 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // Reapply the same filters (using stored currentFilters, not form inputs)
+    async function reapplyFilters() {
+        try {
+            showLoading();
+            const params = new URLSearchParams();
+            
+            // Use stored currentFilters instead of form inputs
+            if (currentFilters.category) params.append('category', currentFilters.category);
+            if (currentFilters.type) params.append('type', currentFilters.type);
+            if (currentFilters.dateFrom) params.append('date_from', currentFilters.dateFrom);
+            if (currentFilters.dateTo) params.append('date_to', currentFilters.dateTo);
+            if (currentFilters.amountMin) params.append('amount_min', currentFilters.amountMin);
+            if (currentFilters.amountMax) params.append('amount_max', currentFilters.amountMax);
+            if (currentFilters.search) params.append('search', currentFilters.search);
+            if (currentFilters.sortBy) params.append('sort_by', currentFilters.sortBy || 'date');
+            if (currentFilters.order) params.append('order', currentFilters.order || 'desc');
+
+            params.append('page', 1);
+            params.append('limit', 100);
+
+            const queryString = params.toString();
+            const url = queryString ? `${API_BASE_URL}/financial-records/search/?${queryString}` : `${API_BASE_URL}/financial-records/records/`;
+
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${ACCESS_TOKEN}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch records');
+            }
+
+            const data = await response.json();
+            allRecords = data.data || [];
+            isFilterApplied = true;
+            currentPage = 1;
+            
+            // Restore filter form inputs from currentFilters
+            document.getElementById('filterCategory').value = currentFilters.category || '';
+            document.getElementById('filterType').value = currentFilters.type || '';
+            document.getElementById('filterDateFrom').value = currentFilters.dateFrom || '';
+            document.getElementById('filterDateTo').value = currentFilters.dateTo || '';
+            document.getElementById('filterAmountMin').value = currentFilters.amountMin || '';
+            document.getElementById('filterAmountMax').value = currentFilters.amountMax || '';
+            document.getElementById('filterSearch').value = currentFilters.search || '';
+            document.getElementById('filterSortBy').value = currentFilters.sortBy || 'date';
+            document.getElementById('filterOrder').value = currentFilters.order || 'desc';
+            
+            // Show results info
+            const resultsInfo = document.getElementById('resultsInfo');
+            const resultsInfoText = document.getElementById('resultsInfoText');
+            resultsInfo.style.display = 'block';
+            resultsInfoText.textContent = `${allRecords.length} record(s) found.`;
+            
+            // Highlight filter button
+            const filterBtn = document.getElementById('filterToggleBtn');
+            filterBtn.style.background = '#ff6b35';
+            filterBtn.style.borderColor = '#ff6b35';
+            filterBtn.innerHTML = '<i class="fas fa-filter"></i> Filter <span style="margin-left: 8px; display: inline-block; width: 8px; height: 8px; background: #fff; border-radius: 50%;"></span>';
+            
+            renderRecords();
+
+        } catch (error) {
+            console.error('Error:', error);
+            showPageMessage('Error reapplying filters: ' + error.message, 'error');
+        } finally {
+            hideLoading();
         }
     }
 
@@ -404,6 +514,7 @@
 
     async function fetchRecords() {
         try {
+            showLoading();
             const response = await fetch(`${API_BASE_URL}/financial-records/records/?page=1&limit=100`, {
                 headers: {
                     'Authorization': `Bearer ${ACCESS_TOKEN}`,
@@ -433,6 +544,8 @@
         } catch (error) {
             console.error('Error:', error);
             document.getElementById('recordsTable').innerHTML = '<tr><td colspan="6" style="text-align: center; color: #e74c3c;">Error loading records</td></tr>';
+        } finally {
+            hideLoading();
         }
     }
 
@@ -545,6 +658,7 @@
         
         if (confirm('Are you sure you want to delete this record?')) {
             try {
+                showLoading();
                 const response = await fetch(`${API_BASE_URL}/financial-records/delete-record/`, {
                     method: 'DELETE',
                     headers: {
@@ -556,13 +670,16 @@
 
                 if (response.ok) {
                     showPageMessage('Record deleted successfully!', 'success');
+                    // fetchRecords handles its own loading, so don't hide
                     fetchRecords();
                 } else {
                     showPageMessage('Failed to delete record', 'error');
+                    hideLoading();
                 }
             } catch (error) {
                 console.error('Error:', error);
                 showPageMessage('Error: ' + error.message, 'error');
+                hideLoading();
             }
         }
     }
@@ -585,6 +702,7 @@
         }
 
         try {
+            showLoading();
             let endpoint, method;
             
             if (editingRecordId) {
@@ -605,24 +723,41 @@
             });
 
             if (response.ok) {
+                // Save editing status BEFORE closeModal resets it
+                const wasEditing = editingRecordId !== null;
+                const wasEditingId = editingRecordId;
+                
                 closeModal();
-                if (editingRecordId) {
+                
+                if (wasEditing) {
+                    // Clear old messages
+                    sessionStorage.removeItem('recordMessage');
                     showPageMessage('Record updated successfully!', 'success');
-                    editingRecordId = null;
-                    fetchRecords();
+                    
+                    // If filters are applied, reapply them; otherwise fetch all records
+                    // These functions handle their own loading, so don't hide loading here
+                    if (isFilterApplied && Object.keys(currentFilters).length > 0) {
+                        reapplyFilters();
+                    } else {
+                        fetchRecords();
+                    }
+                    // Don't hide loading - let fetchRecords/reapplyFilters handle it
                 } else {
-                    // Store message and redirect for new record
+                    // Store message and redirect for new record - keep loading visible during redirect
                     sessionStorage.setItem('recordMessage', 'Record created successfully!');
+                    hideLoading();
                     window.location.href = '/records/';
                 }
             } else {
                 const error = await response.json();
                 const errorMsg = error.Message || error.detail || JSON.stringify(error);
                 showModalMessage(errorMsg, 'error');
+                hideLoading();
             }
         } catch (error) {
             console.error('Error:', error);
             showModalMessage('Error: ' + error.message, 'error');
+            hideLoading();
         }
     });
 
@@ -640,7 +775,7 @@
         // Check access permissions for viewers
         const hasAccess = checkAccessPermissions();
         
-        // Check for redirect message
+        // Check for redirect message from NEW record creation (with redirect)
         const message = sessionStorage.getItem('recordMessage');
         if (message) {
             showPageMessage(message, 'success');

@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 import os
+import logging.handlers
+from urllib.parse import urlparse
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -21,7 +23,10 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ============ CLOUD RUN CONFIGURATION ============
-IS_CLOUD_RUN = os.getenv('CLOUD_RUN', 'false').lower() == 'true'
+IS_CLOUD_RUN = (
+    os.getenv('CLOUD_RUN', 'false').lower() == 'true'
+    or bool(os.getenv('K_SERVICE'))
+)
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
 
 # Quick-start development settings - unsuitable for production
@@ -32,18 +37,31 @@ SECRET_KEY = os.getenv('SECRET_KEY', "django-insecure-k!dto16=72gr=!@z2@(*)1pe8b
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+if IS_CLOUD_RUN:
+    DEBUG = False
 
 # ALLOWED_HOSTS configuration for Cloud Run
 if IS_CLOUD_RUN:
-    # In Cloud Run, allow requests from the Cloud Run domain
+    # In Cloud Run, accept the current service host plus all run.app subdomains.
+    cloud_run_service_url = os.getenv('CLOUD_RUN_SERVICE_URL', '').strip()
+    cloud_run_host = ''
+    if cloud_run_service_url:
+        parsed = urlparse(
+            cloud_run_service_url
+            if '://' in cloud_run_service_url
+            else f"https://{cloud_run_service_url}"
+        )
+        cloud_run_host = parsed.netloc or parsed.path.split('/')[0]
+
     ALLOWED_HOSTS = [
-        os.getenv('CLOUD_RUN_SERVICE_URL', '').replace('https://', '').replace('http://', '').split('/')[0],
-        '*.run.app',
+        '.run.app',
         'localhost',
         '127.0.0.1',
     ]
+    if cloud_run_host:
+        ALLOWED_HOSTS.append(cloud_run_host)
 else:
-    ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
+    ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', '*').split(',') if h.strip()]
 
 
 # Application definition
@@ -98,13 +116,22 @@ WSGI_APPLICATION = "project.wsgi.application"
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 
+db_host = os.getenv('DB_HOST')
+cloud_sql_connection_name = os.getenv('CLOUD_SQL_CONNECTION_NAME', '').strip()
+if not db_host and cloud_sql_connection_name:
+    db_host = f"/cloudsql/{cloud_sql_connection_name}"
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": "/tmp/db.sqlite3" if IS_CLOUD_RUN else BASE_DIR / "db.sqlite3",
-    }
+'default': {
+    'ENGINE':   'django.db.backends.postgresql',
+    'NAME':     os.environ.get('DB_NAME', 'financedb'),
+    'USER':     os.environ.get('DB_USER', 'financeuser'),
+    'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+    'HOST':     os.environ.get('DB_HOST', ''),    # see below
+    'PORT':     os.environ.get('DB_PORT', '5432'),
 }
+}
+
 
 
 # REST Framework Configuration
@@ -195,6 +222,10 @@ CORS_ALLOW_CREDENTIALS = True
 
 # ============ SECURITY SETTINGS FOR PRODUCTION ============
 if IS_CLOUD_RUN and not DEBUG:
+    # Trust Cloud Run's proxy headers so HTTPS redirect does not loop.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    USE_X_FORWARDED_HOST = True
+
     # HTTPS
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
@@ -212,13 +243,24 @@ if IS_CLOUD_RUN and not DEBUG:
         "style-src": ("'self'", "'unsafe-inline'"),
     }
 
-# Logging configuration for Cloud Run
+# Logging configuration for Cloud Run and Local Development
+LOG_DIR = "/app/log" if IS_CLOUD_RUN else BASE_DIR / "log"
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR, exist_ok=True)
+
+LOG_FILE = os.path.join(LOG_DIR, "system.log")
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'format': '[{levelname}] {asctime} - {name} - {funcName}:{lineno} - {message}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'simple': {
+            'format': '{levelname} - {message}',
             'style': '{',
         },
     },
@@ -226,16 +268,37 @@ LOGGING = {
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
+            'level': 'INFO',
+        },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOG_FILE,
+            'maxBytes': 1024 * 1024 * 10,  # 10 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'level': 'DEBUG',
         },
     },
     'loggers': {
         'django': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': 'INFO',
+            'propagate': False,
         },
         'app': {
-            'handlers': ['console'],
-            'level': 'INFO',
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'app.views': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'app.authentication': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
         },
     },
 }

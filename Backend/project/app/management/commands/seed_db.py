@@ -1,17 +1,107 @@
 import os
+import hashlib
 from django.core.management.base import BaseCommand
+from django.contrib.auth.models import User
 from app.models import FinancialRecords, UserProfile     
 from decimal import Decimal
 import pandas as pd
 
 
-# ── SET YOUR EXCEL FILE PATH HERE ─────────────────────────────────────────────
-EXCEL_FILE_PATH = f'D:\\Django_Python_Practice\\Projects_High\\Finance-Management-Project\\Backend\\project\\finance_seed_v3.xlsx'  
-# ──────────────────────────────────────────────────────────────────────────────
+# ── DETERMINE EXCEL FILE PATH ─────────────────────────────────────────────
+# Try multiple locations for the Excel file
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))  # Project root
+EXCEL_FILE_PATH = None
+
+# List of possible paths to check
+possible_paths = [
+    os.path.join(BASE_DIR, 'finance_seed_v3.xlsx'),  # Root of project
+    'finance_seed_v3.xlsx',  # Current directory
+    '/app/finance_seed_v3.xlsx',  # Docker /app
+]
+
+for path in possible_paths:
+    if os.path.exists(path):
+        EXCEL_FILE_PATH = path
+        break
+# ──────────────────────────────────────────────────────────────────────────
+
+
+DEMO_USERS = [
+    ("Demo_admin", "demo.admin@gmail.com", "admin", "demo@admin2026"),
+    ("Demo_analyst", "demo.analyst@gmail.com", "analyst", "demo@analyst2026"),
+    ("Demo_viewer", "demo.viewer@gmail.com", "viewer", "demo@viewer2026"),
+]
 
 
 class Command(BaseCommand):
-    help = "Seed financial records from Excel file"
+    help = "Seed financial records from Excel file (optional)"
+
+    @staticmethod
+    def hash_password(password: str) -> str:
+        return hashlib.sha256(password.encode()).hexdigest()
+
+    def seed_demo_users(self):
+        created_count = 0
+        updated_count = 0
+
+        for user_name, email, role, plain_password in DEMO_USERS:
+            django_user, user_created = User.objects.get_or_create(
+                username=user_name,
+                defaults={
+                    "email": email,
+                    "is_active": True,
+                },
+            )
+
+            if not user_created:
+                user_changed = False
+                if django_user.email != email:
+                    django_user.email = email
+                    user_changed = True
+                if not django_user.is_active:
+                    django_user.is_active = True
+                    user_changed = True
+                if user_changed:
+                    django_user.save()
+
+            password_hash = self.hash_password(plain_password)
+            profile, profile_created = UserProfile.objects.get_or_create(
+                email=email,
+                defaults={
+                    "user_name": user_name,
+                    "user": django_user,
+                    "role": role,
+                    "is_active": True,
+                    "password_hash": password_hash,
+                },
+            )
+
+            if profile_created:
+                created_count += 1
+            else:
+                profile_changed = False
+                if profile.user_name != user_name:
+                    profile.user_name = user_name
+                    profile_changed = True
+                if profile.user_id != django_user.id:
+                    profile.user = django_user
+                    profile_changed = True
+                if profile.role != role:
+                    profile.role = role
+                    profile_changed = True
+                if not profile.is_active:
+                    profile.is_active = True
+                    profile_changed = True
+                if profile.password_hash != password_hash:
+                    profile.password_hash = password_hash
+                    profile_changed = True
+                if profile_changed:
+                    profile.save()
+                    updated_count += 1
+
+        self.stdout.write(self.style.SUCCESS(
+            f"Demo users ready. Created: {created_count}, Updated: {updated_count}"
+        ))
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -23,18 +113,21 @@ class Command(BaseCommand):
             '--path',
             type=str,
             default=EXCEL_FILE_PATH,
-            help=f'Path to Excel seed file (default: {EXCEL_FILE_PATH})',
+            help=f'Path to Excel seed file',
         )
 
     def handle(self, *args, **options):
         excel_path = options['path']
 
-        # ── Validate file ──────────────────────────────────────────────
-        if not os.path.exists(excel_path):
-            self.stdout.write(self.style.ERROR(
-                f"\n File not found: {excel_path}"
-                f"\n   Put the Excel file there or pass --path:"
-                f"\n   python manage.py seed_db --path /your/path/finance_seed_v3.xlsx\n"
+        # Ensure demo Django User + UserProfile records exist before data seeding
+        self.seed_demo_users()
+
+        # ── Validate file - if not found, warn but don't crash ──────────────────────────
+        if not excel_path or not os.path.exists(excel_path):
+            self.stdout.write(self.style.WARNING(
+                f"\n  Excel seed file not found. Skipping data seeding."
+                f"\n   (This is OK in production if you don't have the Excel file)"
+                f"\n   If needed, pass --path to specify a custom location.\n"
             ))
             return
 
