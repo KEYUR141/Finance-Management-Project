@@ -422,17 +422,18 @@ class DashboardKPIView(APIView):
                 })
             logger.debug(f"Category breakdown generated with {len(category_breakdown)} categories")
 
-            # TOP 5 CATEGORIES BY AMOUNT
+            # TOP 5 CATEGORIES BY AMOUNT (with type information for color coding)
             top_categories = []
             top_cats = FinancialRecords.objects.filter(
                 is_deleted=False
-            ).values('category').annotate(
+            ).values('category', 'type_of_record').annotate(
                 total_amount=Sum('amount')
             ).order_by('-total_amount')[:5]
             
             for cat in top_cats:
                 top_categories.append({
                     'category': cat['category'],
+                    'type_of_record': cat['type_of_record'],
                     'amount': float(cat['total_amount'] or 0)
                 })
             logger.debug(f"Top categories identified: {[cat['category'] for cat in top_categories]}")

@@ -500,6 +500,24 @@ Markdown==3.10.2
 
 ---
 
+## Cloud Infrastructure & Deployment
+
+### Cloud Run Instance
+![Cloud Run Instance](readme_images/Screenshot%202026-04-05%20111119.png)
+
+### Database Instance (Cloud SQL)
+![Database Instance](readme_images/Screenshot%202026-04-05%20111154.png)
+
+### Deployment Details
+- **Cloud Platform**: Google Cloud Run
+- **Region**: asia-south1
+- **Instance Type**: 4 vCPU, 16 GB RAM
+- **Database**: PostgreSQL 18.3 (Cloud SQL)
+- **Connection**: Cloud SQL Auth Proxy (local dev)
+- **CI/CD**: Cloud Build with automated deployment
+
+---
+
 ## Implementation Details & File References
 
 **Model Layer** - [Backend/project/app/models.py](Backend/project/app/models.py)

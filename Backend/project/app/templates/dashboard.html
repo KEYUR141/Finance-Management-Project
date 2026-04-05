@@ -61,47 +61,27 @@
     <div style="background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
         <h3 style="margin-bottom: 20px; font-size: 14px; font-weight: 600; color: #1a1a1a;">Top 5 Categories</h3>
         <canvas id="topCategoriesChart"></canvas>
+        </div>
     </div>
-</div>
 
-<h2 style="margin-top: 30px; margin-bottom: 15px; font-size: 14px; font-weight: 600; color: #1a1a1a;">Category Wise Breakdown</h2>
-<div class="table-responsive">
-    <table>
-        <thead>
-            <tr>
-                <th>Category</th>
-                <th>Type</th>
-                <th>Count</th>
-                <th>Total Amount</th>
-            </tr>
-        </thead>
-        <tbody id="categoryTable">
-            <tr>
-                <td colspan="4" style="text-align: center; color: #888; padding: 25px;">Loading...</td>
-            </tr>
-        </tbody>
-    </table>
-</div>
-
-<h2 style="margin-top: 30px; margin-bottom: 15px; font-size: 14px; font-weight: 600; color: #1a1a1a;">Recent Transactions</h2>
-<div class="table-responsive">
-    <table>
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Category</th>
-                <th>Type</th>
-                <th>Amount</th>
-                <th>Notes</th>
-            </tr>
-        </thead>
-        <tbody id="recentTable">
-            <tr>
-                <td colspan="5" style="text-align: center; color: #888; padding: 25px;">Loading...</td>
-            </tr>
-        </tbody>
-    </table>
-</div>
+    <h2 style="margin-top: 30px; margin-bottom: 15px; font-size: 14px; font-weight: 600; color: #1a1a1a;">Category Wise Breakdown</h2>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Type</th>
+                    <th>Count</th>
+                    <th>Total Amount</th>
+                </tr>
+            </thead>
+            <tbody id="categoryTable">
+                <tr>
+                    <td colspan="4" style="text-align: center; color: #888; padding: 25px;">Loading...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 
 <script>
     const API_BASE_URL = '/api';
@@ -174,33 +154,17 @@
             // Update category table
             let categoryHtml = '';
             categoryBreakdown.forEach(cat => {
-                const typeLabel = cat.type_of_record === 'income' ? 'Income' : 'Expense';
+                const typeLabel = cat.type === 'income' ? 'Income' : 'Expense';
                 categoryHtml += `
                     <tr>
                         <td><strong>${cat.category.toUpperCase()}</strong></td>
                         <td>${typeLabel}</td>
                         <td>${cat.count}</td>
-                        <td>₹ ${parseFloat(cat.total_amount).toFixed(2)}</td>
+                        <td>₹ ${parseFloat(cat.amount).toFixed(2)}</td>
                     </tr>
                 `;
             });
             document.getElementById('categoryTable').innerHTML = categoryHtml || '<tr><td colspan="4" style="text-align: center; color: #888;">No data</td></tr>';
-
-            // Update recent transactions table
-            let recentHtml = '';
-            recentTransactions.forEach(record => {
-                const typeLabel = record.type_of_record === 'income' ? 'Income' : 'Expense';
-                recentHtml += `
-                    <tr>
-                        <td>${record.date}</td>
-                        <td>${record.category.toUpperCase()}</td>
-                        <td>${typeLabel}</td>
-                        <td><strong>₹ ${parseFloat(record.amount).toFixed(2)}</strong></td>
-                        <td>${record.notes || '-'}</td>
-                    </tr>
-                `;
-            });
-            document.getElementById('recentTable').innerHTML = recentHtml || '<tr><td colspan="5" style="text-align: center; color: #888;">No records yet</td></tr>';
 
         } catch (error) {
             console.error('Error:', error);
@@ -260,7 +224,7 @@
 
         // Prepare data
         const labels = topCategories.map(cat => cat.category.toUpperCase());
-        const amounts = topCategories.map(cat => parseFloat(cat.total_amount) || 0);
+        const amounts = topCategories.map(cat => parseFloat(cat.amount) || 0);
         
         // Color coding: green for income, red for expense
         const colors = topCategories.map(cat => 
