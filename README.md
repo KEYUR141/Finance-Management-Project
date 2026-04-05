@@ -6,9 +6,11 @@
 ![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat-square&logo=sqlite)
 ![JWT](https://img.shields.io/badge/JWT-SimpleJWT-000000?style=flat-square)
 
-Professional backend for finance dashboard with RBAC, advanced filtering, and comprehensive analytics.
+Professional backend for personal finance management with role-based access control, advanced filtering, and comprehensive analytics.
 
-**Live Demo:** [Coming Soon]
+**Live Demo:** https://finance-management-project-626133859913.asia-south1.run.app/
+
+**API Documentation:** [API_documentation.md](./API_documentation.md) | [Postman Collection](https://bold-desert-872591.postman.co/workspace/705bce77-0211-42ae-8f76-18e04ebf790c/documentation/40456623-6890b617-93a8-4782-bd2f-b75498a947fb)
 
 ---
 
@@ -26,11 +28,11 @@ Frontend (Django Templates) → Django REST Framework → SQLite Database
 
 ---
 
-## Core Requirements Implementation
+## Core Implementation
 
 ### 1. 🔐 User and Role Management
 
-**Requirement**: Create and manage users with access levels
+**User Authentication with Role-Based Access Control**
 
 **Implementation in `models.py`:**
 ```python
@@ -72,17 +74,17 @@ def authenticate(email_or_username, password):
 ```
 **File**: `Backend/project/app/authentication.py` (lines 20-36)
 
-**Proof**: 
-- ✅ Users have roles: `viewer`, `analyst`, `admin`
-- ✅ Status management: `is_active` field
-- ✅ Password validation: SHA-256 hashing
-- ✅ 3 demo accounts pre-configured with different roles
+**Features**: 
+- ✅ Three user roles: `viewer`, `analyst`, `admin` with different access levels
+- ✅ User status management (`is_active` field) for enabling/disabling accounts
+- ✅ SHA-256 password hashing for secure credential storage
+- ✅ 3 demo accounts pre-configured with different roles for testing
 
 ---
 
 ### 2. 💰 Financial Records Management
 
-**Requirement**: Create, read, update, delete financial records with fields (amount, type, category, date, notes)
+**Create, Read, Update, Delete Operations with Field Validation**
 
 **Implementation in `models.py`:**
 ```python
@@ -129,17 +131,17 @@ def delete_record(self, request):  # DELETE - Soft Delete
 ```
 **File**: `Backend/project/app/views.py` (lines 48-300)
 
-**Proof**:
-- ✅ All CRUD operations implemented
-- ✅ All required fields: amount, type, category, date, notes
-- ✅ 26 unit tests validate model operations
-- ✅ Soft-delete preserves audit trail
+**Features**:
+- ✅ Complete CRUD (Create, Read, Update, Delete) implementation
+- ✅ All required fields: amount, type (income/expense), category, date, notes
+- ✅ Soft-delete functionality preserves data audit trail
+- ✅ 26 unit tests validate all operations
 
 ---
 
 ### 3. 📊 Dashboard Summary APIs
 
-**Requirement**: Return aggregated data for dashboard (total income, expenses, balance, category breakdown, trends)
+**Aggregated Analytics with KPIs and Breakdowns**
 
 **Implementation in `views.py` (DashboardKPIView):**
 ```python
@@ -192,19 +194,19 @@ class DashboardKPIView(APIView):
 ```
 **File**: `Backend/project/app/views.py` (lines 334-475)
 
-**Proof**:
-- ✅ 6+ KPI metrics: total income, expense, net balance, monthly metrics
-- ✅ Category breakdown with aggregations
-- ✅ Recent transactions (10 most recent)
-- ✅ Income vs expense ratio
-- ✅ Average transaction amount
-- ✅ Most frequent category
+**Features**:
+- ✅ 6+ KPI metrics: total income, expenses, net balance, monthly breakdown
+- ✅ Category-wise aggregation with transaction counts
+- ✅ Recent transactions list (10 most recent)
+- ✅ Income vs expense ratio calculations
+- ✅ Average transaction amount statistics
+- ✅ Most frequent spending/earning category
 
 ---
 
 ### 4. 🔒 Access Control Logic
 
-**Requirement**: Enforce role-based permissions at backend level
+**Role-Based Permission Enforcement**
 
 **Implementation in `permissions.py`:**
 ```python
@@ -262,17 +264,18 @@ class FincancialRecordsViewSet(viewsets.ModelViewSet):
 ```
 **File**: `Backend/project/app/views.py` (lines 39-310)
 
-**Proof**:
-- ✅ Custom permission classes enforce role checks
+**Features**:
+- ✅ Custom permission classes for fine-grained access control
 - ✅ Viewer: read-only access to records and dashboard
-- ✅ Analyst: same as viewer (extensible)
-- ✅ Admin: full CRUD + user management
+- ✅ Analyst: read and analyze capabilities
+- ✅ Admin: full CRUD operations plus user management
+- ✅ Backend-enforced permissions (not just frontend hiding)
 
 ---
 
 ### 5. ✔️ Validation and Error Handling
 
-**Requirement**: Validate input and return appropriate error responses
+**Input Validation with Meaningful Error Messages**
 
 **Implementation in `serializers.py`:**
 ```python
@@ -323,18 +326,17 @@ def get_records(self, request):
 ```
 **File**: `Backend/project/app/views.py` (lines 48-160)
 
-**Proof**:
-- ✅ Input validation: non-negative amounts, valid categories
-- ✅ Required field validation
-- ✅ Proper HTTP status codes: 400, 401, 403, 404, 500
-- ✅ Meaningful error messages
-- ✅ Logging for audit trail
+**Features**:
+- ✅ Input validation: non-negative amounts, valid categories, required fields
+- ✅ Proper HTTP status codes: 400 (bad request), 401 (unauthorized), 403 (forbidden), 404 (not found), 500 (server error)
+- ✅ Meaningful error messages for debugging
+- ✅ Comprehensive logging for production monitoring
 
 ---
 
 ### 6. 💾 Data Persistence
 
-**Requirement**: Use appropriate persistence approach (database)
+**Secure Database with Audit Trail**
 
 **Database Configuration in `settings.py`:**
 ```python
@@ -358,16 +360,14 @@ class BaseModel(models.Model):
 ```
 **File**: `Backend/project/app/models.py` (lines 9-14)
 
-**Proof**:
-- ✅ SQLite database: single-file, zero configuration
-- ✅ UUID primary keys for security
-- ✅ Timestamps for audit trail (created_at, updated_at)
+**Features**:
+- ✅ SQLite for development (zero configuration), PostgreSQL for production
+- ✅ UUID primary keys instead of sequential IDs (better security & GDPR compliance)
+- ✅ Automatic timestamps for audit trail (created_at, updated_at)
 - ✅ Soft-delete flag (is_deleted) for data recovery
-- ✅ PostgreSQL upgrade transparent (settings only)
+- ✅ Transparent database migration (SQLite ↔ PostgreSQL via settings only)
 
----
 
-## Optional Enhancements Implemented
 
 ### 🎫 JWT Authentication with Tokens
 **File**: `Backend/project/app/authentication.py`
@@ -500,22 +500,36 @@ Markdown==3.10.2
 
 ---
 
-## Verification Checklist
+## Implementation Details & File References
 
-All requirements and enhancements have been implemented and tested:
+**Model Layer** - [Backend/project/app/models.py](Backend/project/app/models.py)
+- BaseModel with UUID primary key and timestamps (lines 9-14)
+- UserProfile with role-based access (lines 17-28)
+- FinancialRecords with soft-delete (lines 31-50)
 
-| # | Requirement | File Location | Proof |
-|---|-------------|--------------|-------|
-| 1 | User & Role Management | `models.py` (17-28), `authentication.py` | 3 roles (viewer/analyst/admin), active/inactive status, SHA-256 hashing |
-| 2 | Financial Records CRUD | `models.py` (31-50), `views.py` (48-310) | Create, read, update, delete operations with validation |
-| 3 | Dashboard APIs | `views.py` (334-475) | 6+ KPIs: income, expenses, balance, category breakdown, trends |
-| 4 | Access Control | `permissions.py` (1-31), `views.py` | Custom permission classes, role-based endpoint protection |
-| 5 | Validation & Errors | `serializers.py` (17-59), `views.py` error handlers | Input validation, proper status codes, error messages |
-| 6 | Data Persistence | `settings.py` (79-85), `models.py` (9-14) | SQLite with UUID PKs, timestamps, soft-delete |
-| 7 | Documentation | `README.md`, `API_documentation.md` | Complete setup, endpoints, examples, cURL commands |
-| 8 | JWT Authentication | `authentication.py` (42-56), `settings.py` (123-131) | RefreshToken, token rotation, configurable lifetimes |
-| 9 | Advanced Filtering | `views.py` (60-130) | 8+ parameters: category, type, date, amount, search |
-| 10 | Unit Tests | `tests.py` | 26 tests covering models, filtering, aggregation, roles ✅ 100% pass |
+**API Layer** - [Backend/project/app/views.py](Backend/project/app/views.py)
+- AuthenticationViewSet for JWT login (lines 39-46)
+- FincancialRecordsViewSet with CRUD + filtering (lines 48-310)
+- DashboardKPIView with analytics (lines 334-475)
+
+**Security Layer** - [Backend/project/app/permissions.py](Backend/project/app/permissions.py)
+- IsAdminOrNot, IsAnalystOrAbove, IsViewerOrAbove classes
+- Custom permission enforcement at view level
+
+**Validation Layer** - [Backend/project/app/serializers.py](Backend/project/app/serializers.py)
+- FinancialRecordsSerializer with comprehensive validation (lines 17-59)
+- UserProfileSerializer for authentication
+
+**Authentication** - [Backend/project/app/authentication.py](Backend/project/app/authentication.py)
+- JWT token generation and management
+- Password hashing and validation
+- User authentication flow
+
+**Configuration** - [Backend/project/project/settings.py](Backend/project/project/settings.py)
+- SimpleJWT configuration with 24-hour expiration (lines 123-131)
+- REST Framework settings with permissions (lines 108-120)
+- Database configuration (lines 79-85)
+- Professional logging with RotatingFileHandler
 
 ---
 

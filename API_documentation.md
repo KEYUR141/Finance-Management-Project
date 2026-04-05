@@ -5,6 +5,11 @@
 http://localhost:8000/api
 ```
 
+## Interactive API Testing
+**Postman Collection:** [Finance Management API - Postman Documentation](https://bold-desert-872591.postman.co/workspace/705bce77-0211-42ae-8f76-18e04ebf790c/documentation/40456623-6890b617-93a8-4782-bd2f-b75498a947fb)
+
+Use the Postman collection above for interactive API testing with pre-built requests and examples.
+
 ## Authentication
 All endpoints (except login) require JWT Bearer token in the `Authorization` header:
 ```
